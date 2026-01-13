@@ -8,10 +8,31 @@ interface ScheduleRow {
   balance: number;
 }
 
+const inputStyle: React.CSSProperties = {
+  width: '100%',
+  padding: '14px',
+  border: '1px solid #CFCFCF',
+  borderRadius: '6px',
+  fontSize: '14px',
+  background: 'transparent',
+  color: '#0A3143'
+};
+
+const thStyle: React.CSSProperties = {
+  padding: '12px',
+  textAlign: 'center'
+};
+
+const tdStyle: React.CSSProperties = {
+  padding: '10px',
+  textAlign: 'center',
+  color: '#0A3143'
+};
+
 const AmortizationPage = () => {
-  const [loanAmount, setLoanAmount] = useState<string>('');
-  const [interestRate, setInterestRate] = useState<string>('');
-  const [term, setTerm] = useState<string>('');
+  const [loanAmount, setLoanAmount] = useState('');
+  const [interestRate, setInterestRate] = useState('');
+  const [term, setTerm] = useState('');
   const [method, setMethod] = useState<'frances' | 'aleman'>('frances');
   const [schedule, setSchedule] = useState<ScheduleRow[]>([]);
 
@@ -28,17 +49,19 @@ const AmortizationPage = () => {
     const newSchedule: ScheduleRow[] = [];
 
     if (method === 'frances') {
-      // Método Francés (cuota fija)
       const monthlyRate = rate / 12;
-      const monthlyPayment = principal * (monthlyRate * Math.pow(1 + monthlyRate, periods)) / (Math.pow(1 + monthlyRate, periods) - 1);
-      
+      const monthlyPayment =
+        principal *
+        (monthlyRate * Math.pow(1 + monthlyRate, periods)) /
+        (Math.pow(1 + monthlyRate, periods) - 1);
+
       let balance = principal;
-      
+
       for (let i = 1; i <= periods; i++) {
         const interestPayment = balance * monthlyRate;
         const principalPayment = monthlyPayment - interestPayment;
         balance -= principalPayment;
-        
+
         newSchedule.push({
           period: i,
           payment: monthlyPayment,
@@ -48,16 +71,15 @@ const AmortizationPage = () => {
         });
       }
     } else {
-      // Método Alemán (amortización constante)
       const principalPayment = principal / periods;
       const monthlyRate = rate / 12;
       let balance = principal;
-      
+
       for (let i = 1; i <= periods; i++) {
         const interestPayment = balance * monthlyRate;
         const totalPayment = principalPayment + interestPayment;
         balance -= principalPayment;
-        
+
         newSchedule.push({
           period: i,
           payment: totalPayment,
@@ -72,171 +94,164 @@ const AmortizationPage = () => {
   };
 
   return (
-    <div style={{ padding: '20px', background: '#EFEFEF', minHeight: '100vh' }}>
-      <h2 style={{ marginBottom: '30px', color: '#0A3143', fontSize: '32px', fontWeight: 'bold' }}>
+    <div
+      style={{
+        padding: '24px',
+        background: '#EFEFEF',
+        minHeight: '100vh'
+      }}
+    >
+      <h2
+        style={{
+          marginBottom: '24px',
+          color: '#0A3143',
+          fontSize: '32px',
+          fontWeight: 'bold'
+        }}
+      >
         Amortización
       </h2>
-      
-      <div style={{ background: 'white', borderRadius: '8px', padding: '30px', marginBottom: '30px' }}>
-        <div style={{ display: 'grid', gap: '20px', maxWidth: '500px' }}>
-          <div>
-            <input
-              type="number"
-              placeholder="Monto del Préstamo"
-              value={loanAmount}
-              onChange={(e) => setLoanAmount(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '12px',
-                border: '1px solid #CECECD',
-                borderRadius: '4px',
-                fontSize: '14px',
-                color: '#0A3143'
-              }}
-            />
-          </div>
-          
-          <div>
-            <input
-              type="number"
-              placeholder="Tasa de Interés"
-              value={interestRate}
-              onChange={(e) => setInterestRate(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '12px',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                fontSize: '14px'
-              }}
-            />
-          </div>
-          
-          <div>
-            <input
-              type="number"
-              placeholder="Plazo"
-              value={term}
-              onChange={(e) => setTerm(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '12px',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                fontSize: '14px'
-              }}
-            />
-          </div>
-        </div>
+
+      {/* Inputs */}
+      <div
+        style={{
+          display: 'grid',
+          gap: '16px',
+          maxWidth: '500px',
+          marginBottom: '40px'
+        }}
+      >
+        <input
+          type="number"
+          placeholder="Monto del Préstamo"
+          value={loanAmount}
+          onChange={(e) => setLoanAmount(e.target.value)}
+          style={inputStyle}
+        />
+
+        <input
+          type="number"
+          placeholder="Tasa de Interés (%)"
+          value={interestRate}
+          onChange={(e) => setInterestRate(e.target.value)}
+          style={inputStyle}
+        />
+
+        <input
+          type="number"
+          placeholder="Plazo"
+          value={term}
+          onChange={(e) => setTerm(e.target.value)}
+          style={inputStyle}
+        />
       </div>
 
-      <div style={{ background: 'white', borderRadius: '8px', padding: '30px', marginBottom: '30px' }}>
-        <h3 style={{ 
-          textAlign: 'center', 
-          fontSize: '24px', 
-          fontWeight: 'bold', 
-          marginBottom: '20px',
-          color: '#333'
-        }}>
-          Método
-        </h3>
-        
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'center', 
-          gap: '10px',
-          marginBottom: '30px'
-        }}>
-          <button
-            onClick={() => setMethod('frances')}
-            style={{
-              padding: '10px 30px',
-              border: method === 'frances' ? '2px solid #276E90' : '1px solid #CECECD',
-              background: method === 'frances' ? '#276E90' : 'white',
-              color: method === 'frances' ? 'white' : '#0A3143',
-              borderRadius: '20px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: method === 'frances' ? 'bold' : 'normal'
-            }}
-          >
-            Francés
-          </button>
-          <button
-            onClick={() => setMethod('aleman')}
-            style={{
-              padding: '10px 30px',
-              border: method === 'aleman' ? '2px solid #276E90' : '1px solid #CECECD',
-              background: method === 'aleman' ? '#276E90' : 'white',
-              color: method === 'aleman' ? 'white' : '#0A3143',
-              borderRadius: '20px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: method === 'aleman' ? 'bold' : 'normal'
-            }}
-          >
-            Alemán
-          </button>
-        </div>
+      {/* Método */}
+      <h3
+        style={{
+          textAlign: 'center',
+          fontSize: '22px',
+          fontWeight: 'bold',
+          marginBottom: '16px',
+          color: '#0A3143'
+        }}
+      >
+        Método
+      </h3>
 
-        <div style={{ textAlign: 'center' }}>
-          <button
-            onClick={calculateAmortization}
-            style={{
-              padding: '12px 40px',
-              background: '#0A3143',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '16px',
-              fontWeight: 'bold'
-            }}
-          >
-            Calcular
-          </button>
-        </div>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          gap: '12px',
+          marginBottom: '32px'
+        }}
+      >
+        <button
+          onClick={() => setMethod('frances')}
+          style={{
+            padding: '10px 32px',
+            border: 'none',
+            background: method === 'frances' ? '#276E90' : '#D9D9D9',
+            color: method === 'frances' ? 'white' : '#0A3143',
+            borderRadius: '20px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: 'bold'
+          }}
+        >
+          Francés
+        </button>
+
+        <button
+          onClick={() => setMethod('aleman')}
+          style={{
+            padding: '10px 32px',
+            border: 'none',
+            background: method === 'aleman' ? '#276E90' : '#D9D9D9',
+            color: method === 'aleman' ? 'white' : '#0A3143',
+            borderRadius: '20px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: 'bold'
+          }}
+        >
+          Alemán
+        </button>
       </div>
 
+      {/* Calcular */}
+      <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+        <button
+          onClick={calculateAmortization}
+          style={{
+            padding: '14px 48px',
+            background: '#0A3143',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontSize: '16px',
+            fontWeight: 'bold'
+          }}
+        >
+          Calcular
+        </button>
+      </div>
+
+      {/* Tabla */}
       {schedule.length > 0 && (
-        <div style={{ background: 'white', borderRadius: '8px', padding: '20px', overflowX: 'auto' }}>
-          <table style={{ 
-            width: '100%', 
-            borderCollapse: 'collapse',
-            fontSize: '14px'
-          }}>
+        <div style={{ overflowX: 'auto' }}>
+          <table
+            style={{
+              width: '100%',
+              borderCollapse: 'collapse',
+              fontSize: '14px'
+            }}
+          >
             <thead>
               <tr style={{ background: '#276E90', color: 'white' }}>
-                <th style={{ padding: '12px', border: '1px solid #CECECD' }}>N° Cuota</th>
-                <th style={{ padding: '12px', border: '1px solid #CECECD' }}>Cuota Fija</th>
-                <th style={{ padding: '12px', border: '1px solid #CECECD' }}>Interés Pagado</th>
-                <th style={{ padding: '12px', border: '1px solid #CECECD' }}>Capital Amortizado</th>
-                <th style={{ padding: '12px', border: '1px solid #CECECD' }}>Saldo Pendiente</th>
+                <th style={thStyle}>N° Cuota</th>
+                <th style={thStyle}>Cuota</th>
+                <th style={thStyle}>Interés</th>
+                <th style={thStyle}>Capital</th>
+                <th style={thStyle}>Saldo</th>
               </tr>
             </thead>
             <tbody>
               {schedule.map((row, index) => (
-                <tr 
+                <tr
                   key={index}
-                  style={{ 
-                    background: index % 2 === 0 ? '#EFEFEF' : 'white'
+                  style={{
+                    background:
+                      index % 2 === 0 ? '#F5F5F5' : 'transparent'
                   }}
                 >
-                  <td style={{ padding: '10px', border: '1px solid #CECECD', textAlign: 'center', color: '#0A3143' }}>
-                    {row.period}
-                  </td>
-                  <td style={{ padding: '10px', border: '1px solid #CECECD', textAlign: 'center', color: '#0A3143' }}>
-                    {row.payment.toFixed(2)}
-                  </td>
-                  <td style={{ padding: '10px', border: '1px solid #CECECD', textAlign: 'center', color: '#0A3143' }}>
-                    {row.interest.toFixed(2)}
-                  </td>
-                  <td style={{ padding: '10px', border: '1px solid #CECECD', textAlign: 'center', color: '#0A3143' }}>
-                    {row.principal.toFixed(2)}
-                  </td>
-                  <td style={{ padding: '10px', border: '1px solid #CECECD', textAlign: 'center', color: '#0A3143' }}>
-                    {row.balance.toFixed(2)}
-                  </td>
+                  <td style={tdStyle}>{row.period}</td>
+                  <td style={tdStyle}>{row.payment.toFixed(2)}</td>
+                  <td style={tdStyle}>{row.interest.toFixed(2)}</td>
+                  <td style={tdStyle}>{row.principal.toFixed(2)}</td>
+                  <td style={tdStyle}>{row.balance.toFixed(2)}</td>
                 </tr>
               ))}
             </tbody>
