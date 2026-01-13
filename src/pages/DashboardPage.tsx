@@ -7,7 +7,7 @@ import {
 } from '@dnd-kit/sortable';
 import { 
   DollarSign, TrendingUp, TrendingDown, Activity, Plus, FileText, Users,
-  Settings, Save, X, PlusCircle, CreditCard, Wallet
+  Settings, Save, X, PlusCircle, CreditCard, Wallet, type LucideIcon
 } from 'lucide-react';
 import { 
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
@@ -16,7 +16,40 @@ import {
 
 import { SortableItem } from '../components/SortableItem';
 import useIsMobile from '../hooks/useIsMobile';
-import { palette, shadows } from '../theme/theme'; // IMPORTAMOS LA PALETA
+import { palette, shadows } from '../theme/theme';
+
+// --- INTERFACES (TIPOS DE DATOS) ---
+// Aquí definimos qué espera recibir cada componente para no usar "any"
+
+interface BaseWidgetProps {
+  isEditing: boolean;
+}
+
+interface StatCardProps extends BaseWidgetProps {
+  title: string;
+  amount: string;
+  trend: string;
+  icon: LucideIcon;
+  iconColor: string;
+}
+
+interface ActionButtonProps {
+  icon: LucideIcon;
+  text: string;
+}
+
+interface AccountItemProps {
+  name: string;
+  type: string;
+  amount: string;
+}
+
+interface TransactionItemProps {
+  title: string;
+  date: string;
+  amount: string;
+  type: 'income' | 'expense';
+}
 
 // --- DEFINICIÓN DE WIDGETS ---
 const ALL_WIDGETS_DEF = [
@@ -84,7 +117,7 @@ const DashboardPage = () => {
     switch (id) {
       case 'ingresos': content = <StatCard title="Ingresos Totales" amount="$763,432" trend="+12%" icon={TrendingUp} iconColor="#10b981" {...commonProps} />; break;
       case 'gastos': content = <StatCard title="Gastos" amount="$24,654" trend="-2%" icon={TrendingDown} iconColor="#ef4444" {...commonProps} />; break;
-      case 'balance': content = <StatCard title="Balance Neto" amount="$738,778" trend="Estable" icon={DollarSign} iconColor={palette.primary.main} {...commonProps} />; break; // Balance en azul
+      case 'balance': content = <StatCard title="Balance Neto" amount="$738,778" trend="Estable" icon={DollarSign} iconColor={palette.primary.main} {...commonProps} />; break;
       case 'flujo': content = <ChartWidget {...commonProps} />; break;
       case 'distribucion': content = <ExpensesPieWidget {...commonProps} />; break;
       case 'cuentas': content = <AccountsWidget {...commonProps} />; break;
@@ -192,7 +225,7 @@ const DashboardPage = () => {
 
 /* --- COMPONENTES VISUALES --- */
 
-const ChartWidget = ({ isEditing }: any) => {
+const ChartWidget = ({ isEditing }: BaseWidgetProps) => {
   const data = [
     { name: 'Ene', Ingresos: 4000, Gastos: 2400 },
     { name: 'Feb', Ingresos: 3000, Gastos: 1398 },
@@ -225,9 +258,7 @@ const ChartWidget = ({ isEditing }: any) => {
             <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
             <CartesianGrid vertical={false} stroke="#f1f5f9" />
             <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: shadows.soft }} />
-            {/* Usamos el color Principal (Azul Claro) para Ingresos */}
             <Area type="monotone" dataKey="Ingresos" stroke={palette.primary.main} fillOpacity={1} fill="url(#colorIngresos)" />
-            {/* Usamos el color Oscuro (Azul Marino) para Gastos */}
             <Area type="monotone" dataKey="Gastos" stroke={palette.secondary.main} fillOpacity={1} fill="url(#colorGastos)" />
           </AreaChart>
         </ResponsiveContainer>
@@ -236,11 +267,11 @@ const ChartWidget = ({ isEditing }: any) => {
   );
 };
 
-const ExpensesPieWidget = ({ isEditing }: any) => {
+const ExpensesPieWidget = ({ isEditing }: BaseWidgetProps) => {
   const data = [
-    { name: 'Servidores', value: 400, color: palette.secondary.main }, // Oscuro
-    { name: 'Nómina', value: 300, color: palette.primary.main },     // Principal
-    { name: 'Oficina', value: 300, color: palette.secondary.light },  // Complementario
+    { name: 'Servidores', value: 400, color: palette.secondary.main }, 
+    { name: 'Nómina', value: 300, color: palette.primary.main },     
+    { name: 'Oficina', value: 300, color: palette.secondary.light },  
     { name: 'Marketing', value: 200, color: '#94a3b8' },
   ];
 
@@ -285,7 +316,7 @@ const ExpensesPieWidget = ({ isEditing }: any) => {
   );
 };
 
-const AccountsWidget = ({ isEditing }: any) => (
+const AccountsWidget = ({ isEditing }: BaseWidgetProps) => (
   <div style={{ ...baseCardStyle, border: isEditing ? `2px dashed ${palette.border}` : 'none' }}>
     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
       <h3 style={cardTitleStyle}>Mis Cuentas</h3>
@@ -302,7 +333,7 @@ const AccountsWidget = ({ isEditing }: any) => (
   </div>
 );
 
-const AccountItem = ({ name, type, amount }: any) => (
+const AccountItem = ({ name, type, amount }: AccountItemProps) => (
   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
       <div style={{ width: '36px', height: '36px', borderRadius: '8px', backgroundColor: palette.background.default, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${palette.border}` }}>
@@ -317,7 +348,7 @@ const AccountItem = ({ name, type, amount }: any) => (
   </div>
 );
 
-const StatCard = ({ title, amount, trend, icon: Icon, iconColor, isEditing }: any) => (
+const StatCard = ({ title, amount, trend, icon: Icon, iconColor, isEditing }: StatCardProps) => (
   <div style={{ 
     ...baseCardStyle, minHeight: '160px', height: '100%',
     border: isEditing ? `2px dashed ${palette.border}` : 'none', 
@@ -337,7 +368,7 @@ const StatCard = ({ title, amount, trend, icon: Icon, iconColor, isEditing }: an
   </div>
 );
 
-const ActionsWidget = ({ isEditing }: any) => (
+const ActionsWidget = ({ isEditing }: BaseWidgetProps) => (
   <div style={{ ...baseCardStyle, border: isEditing ? `2px dashed ${palette.border}` : 'none', boxShadow: isEditing ? 'none' : baseCardStyle.boxShadow }}>
     <h3 style={cardTitleStyle}>Acciones Rápidas</h3>
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: '12px' }}>
@@ -349,7 +380,7 @@ const ActionsWidget = ({ isEditing }: any) => (
   </div>
 );
 
-const TransactionsWidget = ({ isEditing }: any) => (
+const TransactionsWidget = ({ isEditing }: BaseWidgetProps) => (
   <div style={{ ...baseCardStyle, border: isEditing ? `2px dashed ${palette.border}` : 'none', boxShadow: isEditing ? 'none' : baseCardStyle.boxShadow }}>
     <h3 style={cardTitleStyle}>Transacciones Recientes</h3>
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -360,7 +391,7 @@ const TransactionsWidget = ({ isEditing }: any) => (
   </div>
 );
 
-const ActionButton = ({ icon: Icon, text }: any) => (
+const ActionButton = ({ icon: Icon, text }: ActionButtonProps) => (
   <button style={{
     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
     padding: '16px', border: `1px solid ${palette.border}`, borderRadius: '12px', background: palette.background.paper,
@@ -374,7 +405,7 @@ const ActionButton = ({ icon: Icon, text }: any) => (
   </button>
 );
 
-const TransactionItem = ({ title, date, amount, type }: any) => (
+const TransactionItem = ({ title, date, amount, type }: TransactionItemProps) => (
   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '12px', borderBottom: '1px solid #f1f5f9' }}>
     <div><p style={{ margin: 0, fontWeight: '600', color: palette.text.primary }}>{title}</p><p style={{ margin: 0, fontSize: '0.8rem', color: palette.text.secondary }}>{date}</p></div>
     <span style={{ fontWeight: '600', color: type === 'income' ? '#10b981' : '#ef4444' }}>{amount}</span>
