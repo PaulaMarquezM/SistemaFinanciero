@@ -5,6 +5,7 @@ import { palette, shadows } from "../theme/theme";
 import AuthBackground from "../components/AuthBackground";
 
 
+
 const inputStyle: React.CSSProperties = {
   width: "100%",
   padding: "12px 14px",
