@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Lock, Mail, User } from "lucide-react";
 import { palette, shadows } from "../theme/theme";
 import AuthBackground from "../components/AuthBackground";
-
+import { loginApi } from "../api/authApi";
 
 
 const inputStyle: React.CSSProperties = {
@@ -49,6 +49,7 @@ function isValidEmail(email: string) {
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -72,18 +73,38 @@ const LoginPage = () => {
 
   const canSubmit = !emailError && !passwordError && email.trim() && password;
 
-  const onSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
 
-    setTouched({ email: true, password: true });
+  const onSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setError(null);
 
-    if (!canSubmit) return;
+  setTouched({ email: true, password: true });
+  if (!canSubmit) return;
 
-    // Por ahora, sin backend: solo simulamos éxito y regresamos al dashboard.
-    // Cuando tengamos endpoints, aquí llamaremos financialApi.post("/auth/login", ...)
+  setIsSubmitting(true);
+  try {
+    const res = await loginApi({ email, password });
+
+    // Sesión simple temporal (hasta que implementen JWT o /me)
+    localStorage.setItem("auth_user_id", String(res.user_id));
+
     navigate("/", { replace: true });
-  };
+  } catch (err: unknown) {
+    let msg = "No se pudo iniciar sesión. Revisa tus credenciales.";
+
+    if (typeof err === "object" && err !== null && "response" in err) {
+      const axiosErr = err as {
+        response?: { data?: { detail?: string } };
+      };
+      msg = axiosErr.response?.data?.detail ?? msg;
+    }
+
+    setError(msg);
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
 
   return (
     <AuthBackground> 
@@ -199,9 +220,18 @@ const LoginPage = () => {
                 )}
             </div>
 
-            <button type="submit" style={{ ...buttonStyle, opacity: canSubmit ? 1 : 0.6 }}>
-                Entrar
-            </button>
+            <button
+                type="submit"
+                disabled={!canSubmit || isSubmitting}
+                style={{
+                    ...buttonStyle,
+                    opacity: canSubmit && !isSubmitting ? 1 : 0.6,
+                    cursor: canSubmit && !isSubmitting ? "pointer" : "not-allowed",
+                }}
+                >
+                {isSubmitting ? "Ingresando..." : "Entrar"}
+                </button>
+
             </form>
 
             <div

@@ -3,6 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { Lock, Mail, User } from "lucide-react";
 import { palette, shadows } from "../theme/theme";
 import AuthBackground from "../components/AuthBackground";
+import { registerApi } from "../api/authApi";
+
 
 
 
@@ -81,17 +83,37 @@ const RegisterPage = () => {
   const canSubmit =
     !nameError && !emailError && !passwordError && name.trim() && email.trim() && password;
 
-  const onSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
+  const onSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setError(null);
 
-    setTouched({ name: true, email: true, password: true });
-    if (!canSubmit) return;
+  setTouched({ name: true, email: true, password: true });
+  if (!canSubmit) return;
 
-    // Por ahora, sin backend: simulamos registro exitoso y te mandamos a login.
-    // Cuando tengamos endpoints, aquí llamaremos financialApi.post("/auth/register", ...)
+  try {
+    await registerApi({
+      full_name: name,   // IMPORTANTE: backend espera full_name
+      email,
+      password,
+    });
+
     navigate("/login", { replace: true });
-  };
+  } catch (err: unknown) {
+  let msg = "No se pudo registrar. Verifica los datos e inténtalo de nuevo.";
+
+  if (typeof err === "object" && err !== null && "response" in err) {
+    const axiosErr = err as {
+      response?: { data?: { detail?: string } };
+    };
+
+    msg = axiosErr.response?.data?.detail ?? msg;
+  }
+
+  setError(msg);
+}
+
+};
+
 
   return (
     <AuthBackground>
