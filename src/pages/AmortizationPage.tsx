@@ -1,12 +1,5 @@
 import { useState } from 'react';
-
-interface ScheduleRow {
-  period: number;
-  payment: number;
-  interest: number;
-  principal: number;
-  balance: number;
-}
+import { getAmortizationSchedule, type ScheduleRow } from '../api/financialApi';
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
@@ -16,6 +9,12 @@ const inputStyle: React.CSSProperties = {
   fontSize: '14px',
   background: 'transparent',
   color: '#0A3143'
+};
+
+const selectStyle: React.CSSProperties = {
+  ...inputStyle,
+  background: 'white',
+  cursor: 'pointer'
 };
 
 const thStyle: React.CSSProperties = {
@@ -29,144 +28,152 @@ const tdStyle: React.CSSProperties = {
   color: '#0A3143'
 };
 
+const formatMoney = (value: number) => {
+  return new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+};
+
 const AmortizationPage = () => {
   const [loanAmount, setLoanAmount] = useState('');
   const [interestRate, setInterestRate] = useState('');
   const [term, setTerm] = useState('');
+
+  const [termType, setTermType] = useState<'months' | 'years'>('years'); // Por defecto Años
+  const [rateType, setRateType] = useState<'annual' | 'monthly'>('annual'); // Por defecto Anual
+
   const [method, setMethod] = useState<'frances' | 'aleman'>('frances');
   const [schedule, setSchedule] = useState<ScheduleRow[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const calculateAmortization = () => {
+  const calculateAmortization = async () => {
     const principal = parseFloat(loanAmount);
-    const rate = parseFloat(interestRate) / 100;
-    const periods = parseInt(term);
+    const rateInput = parseFloat(interestRate);
+    const termInput = parseInt(term);
 
-    if (!principal || !rate || !periods) {
-      alert('Por favor complete todos los campos');
+    if (!principal || isNaN(rateInput) || !termInput) {
+      alert('Por favor complete todos los campos correctamente');
       return;
     }
 
-    const newSchedule: ScheduleRow[] = [];
+    const finalPeriods = termType === 'years' ? termInput * 12 : termInput;
 
-    if (method === 'frances') {
-      const monthlyRate = rate / 12;
-      const monthlyPayment =
-        principal *
-        (monthlyRate * Math.pow(1 + monthlyRate, periods)) /
-        (Math.pow(1 + monthlyRate, periods) - 1);
+    const finalAnnualRate = rateType === 'monthly' ? rateInput * 12 : rateInput;
 
-      let balance = principal;
+    setIsLoading(true);
 
-      for (let i = 1; i <= periods; i++) {
-        const interestPayment = balance * monthlyRate;
-        const principalPayment = monthlyPayment - interestPayment;
-        balance -= principalPayment;
+    try {
+      const data = await getAmortizationSchedule({
+        principal,
+        annual_rate: finalAnnualRate,
+        periods: finalPeriods,
+        method
+      });
 
-        newSchedule.push({
-          period: i,
-          payment: monthlyPayment,
-          interest: interestPayment,
-          principal: principalPayment,
-          balance: Math.max(0, balance)
-        });
-      }
-    } else {
-      const principalPayment = principal / periods;
-      const monthlyRate = rate / 12;
-      let balance = principal;
-
-      for (let i = 1; i <= periods; i++) {
-        const interestPayment = balance * monthlyRate;
-        const totalPayment = principalPayment + interestPayment;
-        balance -= principalPayment;
-
-        newSchedule.push({
-          period: i,
-          payment: totalPayment,
-          interest: interestPayment,
-          principal: principalPayment,
-          balance: Math.max(0, balance)
-        });
-      }
+      setSchedule(data);
+    } catch (error) {
+      console.error("Failed to fetch schedule:", error);
+      alert("Error al conectar con el servidor.");
+    } finally {
+      setIsLoading(false);
     }
-
-    setSchedule(newSchedule);
   };
+
+  const totalPayment = schedule.reduce((acc, row) => acc + Number(row.payment), 0);
+  const totalInterest = schedule.reduce((acc, row) => acc + Number(row.interest), 0);
+  const totalPrincipal = schedule.reduce((acc, row) => acc + Number(row.principal), 0);
 
   return (
     <div
       style={{
         padding: '24px',
         background: '#EFEFEF',
-        minHeight: '100vh'
+        minHeight: '100vh',
+        fontFamily: 'Arial, sans-serif'
       }}
     >
-      <h2
-        style={{
-          marginBottom: '24px',
-          color: '#0A3143',
-          fontSize: '32px',
-          fontWeight: 'bold'
-        }}
-      >
-        Amortización
+      <h2 style={{ color: '#0A3143', fontSize: '28px', fontWeight: 'bold', marginBottom: '24px' }}>
+        Tabla de Amortización
       </h2>
 
-      {/* Inputs */}
-      <div
-        style={{
-          display: 'grid',
-          gap: '16px',
-          maxWidth: '500px',
-          marginBottom: '40px'
-        }}
-      >
-        <input
-          type="number"
-          placeholder="Monto del Préstamo"
-          value={loanAmount}
-          onChange={(e) => setLoanAmount(e.target.value)}
-          style={inputStyle}
-        />
+      <div style={{ display: 'grid', gap: '20px', maxWidth: '600px', marginBottom: '30px' }}>
 
-        <input
-          type="number"
-          placeholder="Tasa de Interés (%)"
-          value={interestRate}
-          onChange={(e) => setInterestRate(e.target.value)}
-          style={inputStyle}
-        />
+        {/* Monto */}
+        <div>
+          <label style={{display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#0A3143'}}>
+            Monto del Préstamo ($)
+          </label>
+          <input
+            type="number"
+            placeholder="Ej: 225000"
+            value={loanAmount}
+            onChange={(e) => setLoanAmount(e.target.value)}
+            style={inputStyle}
+          />
+        </div>
 
-        <input
-          type="number"
-          placeholder="Plazo"
-          value={term}
-          onChange={(e) => setTerm(e.target.value)}
-          style={inputStyle}
-        />
+        {/* Tasa de Interés con Selector */}
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '10px' }}>
+          <div>
+            <label style={{display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#0A3143'}}>
+              Tasa de Interés (%)
+            </label>
+            <input
+              type="number"
+              placeholder={rateType === 'annual' ? "Ej: 28" : "Ej: 2"}
+              value={interestRate}
+              onChange={(e) => setInterestRate(e.target.value)}
+              style={inputStyle}
+            />
+          </div>
+          <div>
+            <label style={{display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#0A3143'}}>
+              Tipo de Tasa
+            </label>
+            <select
+              value={rateType}
+              onChange={(e) => setRateType(e.target.value as 'annual' | 'monthly')}
+              style={selectStyle}
+            >
+              <option value="annual">Anual</option>
+              <option value="monthly">Mensual</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Plazo con Selector */}
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '10px' }}>
+          <div>
+            <label style={{display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#0A3143'}}>
+              Plazo
+            </label>
+            <input
+              type="number"
+              placeholder={termType === 'years' ? "Ej: 5" : "Ej: 60"}
+              value={term}
+              onChange={(e) => setTerm(e.target.value)}
+              style={inputStyle}
+            />
+          </div>
+          <div>
+            <label style={{display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#0A3143'}}>
+              Unidad de Tiempo
+            </label>
+            <select
+              value={termType}
+              onChange={(e) => setTermType(e.target.value as 'years' | 'months')}
+              style={selectStyle}
+            >
+              <option value="years">Años</option>
+              <option value="months">Meses</option>
+            </select>
+          </div>
+        </div>
       </div>
 
-      {/* Método */}
-      <h3
-        style={{
-          textAlign: 'center',
-          fontSize: '22px',
-          fontWeight: 'bold',
-          marginBottom: '16px',
-          color: '#0A3143'
-        }}
-      >
-        Método
-      </h3>
-
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'center',
-          gap: '12px',
-          marginBottom: '32px'
-        }}
-      >
+      {/* Selector de Método */}
+      <div style={{ display: 'flex', gap: '12px', marginBottom: '30px' }}>
         <button
           onClick={() => setMethod('frances')}
           style={{
@@ -176,11 +183,10 @@ const AmortizationPage = () => {
             color: method === 'frances' ? 'white' : '#0A3143',
             borderRadius: '20px',
             cursor: 'pointer',
-            fontSize: '14px',
             fontWeight: 'bold'
           }}
         >
-          Francés
+          Francés (Cuota Fija)
         </button>
 
         <button
@@ -192,74 +198,77 @@ const AmortizationPage = () => {
             color: method === 'aleman' ? 'white' : '#0A3143',
             borderRadius: '20px',
             cursor: 'pointer',
-            fontSize: '14px',
             fontWeight: 'bold'
           }}
         >
-          Alemán
+          Alemán (Amort. Fija)
         </button>
       </div>
 
-      {/* Calcular */}
-      <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+      <div style={{ marginBottom: '40px' }}>
         <button
           onClick={calculateAmortization}
+          disabled={isLoading}
           style={{
             padding: '14px 48px',
-            background: '#0A3143',
+            background: isLoading ? '#6c8b99' : '#0A3143',
             color: 'white',
             border: 'none',
             borderRadius: '6px',
-            cursor: 'pointer',
+            cursor: isLoading ? 'wait' : 'pointer',
             fontSize: '16px',
             fontWeight: 'bold'
           }}
         >
-          Calcular
+          {isLoading ? 'Calculando...' : 'Generar Tabla'}
         </button>
       </div>
 
-      {/* Tabla */}
-      {schedule.length > 0 && (
-        <div style={{ overflowX: 'auto' }}>
-          <table
-            style={{
-              width: '100%',
-              borderCollapse: 'collapse',
-              fontSize: '14px'
-            }}
-          >
-            <thead>
-              <tr style={{ background: '#276E90', color: 'white' }}>
-                <th style={thStyle}>N° Cuota</th>
-                <th style={thStyle}>Cuota</th>
-                <th style={thStyle}>Interés</th>
-                <th style={thStyle}>Capital</th>
-                <th style={thStyle}>Saldo</th>
+      {/* Tabla de Resultados */}
+    {schedule.length > 0 && (
+      <div style={{ overflowX: 'auto', background: 'white', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+          <thead>
+            <tr style={{ background: '#276E90', color: 'white' }}>
+              <th style={thStyle}>N°</th>
+              <th style={thStyle}>Cuota</th>
+              <th style={thStyle}>Interés</th>
+              <th style={thStyle}>Capital</th>
+              <th style={thStyle}>Saldo Restante</th>
+            </tr>
+          </thead>
+          <tbody>
+            {schedule.map((row, index) => (
+              <tr
+                key={index}
+                style={{
+                  background: index % 2 === 0 ? '#F8F9FA' : 'white',
+                  borderBottom: '1px solid #eee'
+                }}
+              >
+                 <td style={tdStyle}>{row.period}</td>
+                <td style={tdStyle}>${formatMoney(Number(row.payment))}</td>
+                  <td style={tdStyle}>${formatMoney(Number(row.interest))}</td>
+                  <td style={tdStyle}>${formatMoney(Number(row.principal))}</td>
+                  <td style={tdStyle}>${formatMoney(Number(row.balance))}</td>
               </tr>
-            </thead>
-            <tbody>
-              {schedule.map((row, index) => (
-                <tr
-                  key={index}
-                  style={{
-                    background:
-                      index % 2 === 0 ? '#F5F5F5' : 'transparent'
-                  }}
-                >
-                  <td style={tdStyle}>{row.period}</td>
-                  <td style={tdStyle}>{row.payment.toFixed(2)}</td>
-                  <td style={tdStyle}>{row.interest.toFixed(2)}</td>
-                  <td style={tdStyle}>{row.principal.toFixed(2)}</td>
-                  <td style={tdStyle}>{row.balance.toFixed(2)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
-  );
+            ))}
+          </tbody>
+          {/* SECCIÓN DE TOTALES UPDATED */}
+          <tfoot>
+            <tr style={{ background: '#276E90', color: 'white', fontWeight: 'bold' }}>
+              <td style={{ ...tdStyle, color: 'white' }}>Total</td>
+              <td style={{ ...tdStyle, color: 'white' }}>${formatMoney(totalPayment)}</td>
+              <td style={{ ...tdStyle, color: 'white' }}>${formatMoney(totalInterest)}</td>
+              <td style={{ ...tdStyle, color: 'white' }}>${formatMoney(totalPrincipal)}</td>
+              <td style={{ ...tdStyle, color: 'white' }}>-</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    )}
+  </div>
+);
 };
 
 export default AmortizationPage;
