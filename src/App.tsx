@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import MainLayout from "./components/layout/MainLayout";
 import DashboardPage from "./pages/DashboardPage";
 import CompoundInterestPage from "./pages/CompoundInterestPage";
-import DepreciationPage from "./pages/DepreciationPage";
+import DepreciacionPage from "./pages/Depreciacion/DepreciacionPage";
 import AmortizationPage from "./pages/AmortizationPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
@@ -40,7 +40,7 @@ const App = () => {
         >
           <Route index element={<DashboardPage />} />
           <Route path="interes-compuesto" element={<CompoundInterestPage />} />
-          <Route path="depreciacion" element={<DepreciationPage />} />
+          <Route path="depreciacion" element={<DepreciacionPage />} />
           <Route path="amortizacion" element={<AmortizationPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
