@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import MainLayout from "./components/layout/MainLayout";
 import DashboardPage from "./pages/DashboardPage";
-import CompoundInterestPage from "./pages/CompoundInterestPage";
+import CompoundInterestPage from "./pages/SimpleInterestPage";
 import DepreciacionPage from "./pages/Depreciacion/DepreciacionPage";
 import AmortizationPage from "./pages/AmortizationPage";
 import LoginPage from "./pages/LoginPage";

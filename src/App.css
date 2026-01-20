@@ -40,3 +40,69 @@
 .read-the-docs {
   color: #888;
 }
+
+.card {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 25px;
+}
+
+.card-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 30px 0 15px;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.primary-btn {
+  margin-top: 20px;
+  padding: 12px 24px;
+  background: #0f766e;
+  color: white;
+  border-radius: 10px;
+  border: none;
+  font-weight: 600;
+}
+
+.result-card,
+.metric-card {
+  background: white;
+  border-radius: 12px;
+  padding: 18px;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.data-table th,
+.data-table td {
+  padding: 12px;
+  border-bottom: 1px solid #e5e7eb;
+  font-weight: 500;
+}
+
+.explanation ul {
+  margin-top: 10px;
+  padding-left: 20px;
+}
