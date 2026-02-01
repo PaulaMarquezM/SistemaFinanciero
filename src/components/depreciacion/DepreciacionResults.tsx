@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import type { DepreciationInput, DepreciationResult, DepreciationRow } from "../../lib/depreciacion/types";
+import type { TipoActivoSRI } from "./DepreciacionForm";
+import { TABLA_SRI } from "./DepreciacionForm";
 
 type MetodoUI = "LINEA_RECTA" | "UNIDADES_PRODUCIDAS";
 
@@ -10,15 +12,15 @@ export default function DepreciacionResults(props: {
   input: DepreciationInput;
   metodoUI: MetodoUI;
   vidaTotalUnidades: number;
+  tipoActivo: TipoActivoSRI;
 }) {
-  const { result, input, metodoUI, vidaTotalUnidades } = props;
+  const { result, input, metodoUI, vidaTotalUnidades, tipoActivo } = props;
 
   const isLineaRecta = metodoUI === "LINEA_RECTA";
   const isUnidades = metodoUI === "UNIDADES_PRODUCIDAS";
 
   const [copyStatus, setCopyStatus] = useState<string>("");
 
-  // CSV generado una sola vez por render (si cambia rows, cambia el csv)
   const csv = useMemo(() => buildCSV(result.rows), [result.rows]);
 
   function handleDownloadCSV() {
@@ -34,6 +36,205 @@ export default function DepreciacionResults(props: {
     } catch {
       setCopyStatus("No se pudo copiar. (Revise permisos del navegador)");
       window.setTimeout(() => setCopyStatus(""), 2500);
+    }
+  }
+
+  async function handleDownloadPDF() {
+    if (result.rows.length === 0) return;
+
+    try {
+      const jsPDF = (await import("jspdf")).default;
+      const autoTable = (await import("jspdf-autotable")).default;
+
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const margin = 14;
+
+      // --- Colores del tema ---
+      const primaryColor: [number, number, number] = [39, 110, 144];   // #276E90
+      const darkColor: [number, number, number] = [10, 49, 67];        // #0A3143
+      const lightGray: [number, number, number] = [245, 245, 245];
+
+      // --- Encabezado ---
+      pdf.setFillColor(...darkColor);
+      pdf.rect(0, 0, pageWidth, 32, "F");
+
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(18);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Reporte de Depreciación", margin, 14);
+
+      pdf.setFontSize(10);
+      pdf.setFont("helvetica", "normal");
+      const metodoLabel = isLineaRecta ? "Método: Línea Recta" : "Método: Unidades de Producción";
+      pdf.text(metodoLabel, margin, 22);
+
+      const fecha = new Date().toLocaleDateString("es-EC", { year: "numeric", month: "long", day: "numeric" });
+      pdf.text(`Fecha: ${fecha}`, margin, 28);
+
+      // Tipo de activo (derecha del header)
+      if (isLineaRecta) {
+        const sri = TABLA_SRI[tipoActivo];
+        pdf.text(`Tipo de activo (SRI): ${sri.label}`, pageWidth - margin, 22, { align: "right" });
+      }
+
+      let y = 40;
+
+      // --- Resumen ---
+      pdf.setTextColor(...darkColor);
+      pdf.setFontSize(12);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Resumen del Activo", margin, y);
+      y += 2;
+
+      const summaryData = [
+        ["Costo del activo", `$ ${result.summary.costo.toFixed(2)}`],
+        ["Valor residual (10%)", `$ ${result.summary.valorResidual.toFixed(2)}`],
+        ["Base depreciable", `$ ${result.summary.baseDepreciable.toFixed(2)}`],
+        ["Total depreciado", `$ ${result.summary.totalDepreciado.toFixed(2)}`],
+      ];
+
+      if (isLineaRecta && input.metodo === "LINEA_RECTA") {
+        summaryData.push(["Vida útil", `${input.vidaUtilAnios} años`]);
+      }
+
+      autoTable(pdf, {
+        startY: y,
+        head: [],
+        body: summaryData,
+        theme: "plain",
+        margin: { left: margin, right: margin },
+        styles: { fontSize: 9, cellPadding: 2.5 },
+        columnStyles: {
+          0: { fontStyle: "bold", cellWidth: 55, textColor: darkColor },
+          1: { halign: "left", textColor: [60, 60, 60] },
+        },
+        didParseCell(data) {
+          if (data.row.index % 2 === 0) {
+            data.cell.styles.fillColor = lightGray;
+          }
+        },
+      });
+
+      y = (pdf as any).lastAutoTable.finalY + 6;
+
+      // --- Métricas del método ---
+      pdf.setTextColor(...darkColor);
+      pdf.setFontSize(12);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Métricas del Método", margin, y);
+      y += 2;
+
+      const metricsData: string[][] = [];
+      if (isLineaRecta) {
+        metricsData.push(["Depreciación anual", `$ ${(result.summary.depreciacionAnual ?? 0).toFixed(2)}`]);
+        metricsData.push(["Depreciación mensual", `$ ${(result.summary.depreciacionMensual ?? 0).toFixed(2)}`]);
+        metricsData.push([`Depreciación diaria (base ${input.baseDias})`, `$ ${(result.summary.depreciacionDiaria ?? 0).toFixed(2)}`]);
+      } else {
+        metricsData.push(["Tasa por unidad", `$ ${(result.summary.tasaPorUnidad ?? 0).toFixed(4)}`]);
+        metricsData.push(["Vida total (unidades)", vidaTotalUnidades.toFixed(0)]);
+        metricsData.push(["Unidades ingresadas", sumUnits(result.rows).toFixed(0)]);
+      }
+
+      autoTable(pdf, {
+        startY: y,
+        head: [],
+        body: metricsData,
+        theme: "plain",
+        margin: { left: margin, right: margin },
+        styles: { fontSize: 9, cellPadding: 2.5 },
+        columnStyles: {
+          0: { fontStyle: "bold", cellWidth: 55, textColor: darkColor },
+          1: { halign: "left", textColor: [60, 60, 60] },
+        },
+        didParseCell(data) {
+          if (data.row.index % 2 === 0) {
+            data.cell.styles.fillColor = lightGray;
+          }
+        },
+      });
+
+      y = (pdf as any).lastAutoTable.finalY + 8;
+
+      // --- Tabla de depreciación ---
+      pdf.setTextColor(...darkColor);
+      pdf.setFontSize(12);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Tabla de Depreciación", margin, y);
+      y += 2;
+
+      const headers = ["Periodo", "Etiqueta", "V. Inicio", "Deprec.", "Acum.", "V. Fin"];
+      if (isUnidades) headers.push("Unidades");
+      if (result.rows.some((r) => r.diasAplicados != null)) headers.push("Días");
+      if (result.rows.some((r) => r.mesesAplicados != null)) headers.push("Meses");
+
+      const tableBody = result.rows.map((r) => {
+        const row: string[] = [
+          String(r.periodo),
+          r.etiquetaPeriodo ?? "",
+          r.valorEnLibrosInicio.toFixed(2),
+          r.depreciacionPeriodo.toFixed(2),
+          r.depreciacionAcumulada.toFixed(2),
+          r.valorEnLibrosFin.toFixed(2),
+        ];
+        if (isUnidades) row.push(r.unidades != null ? String(r.unidades) : "");
+        if (result.rows.some((r) => r.diasAplicados != null)) row.push(r.diasAplicados != null ? String(r.diasAplicados) : "");
+        if (result.rows.some((r) => r.mesesAplicados != null)) row.push(r.mesesAplicados != null ? String(r.mesesAplicados) : "");
+        return row;
+      });
+
+      autoTable(pdf, {
+        startY: y,
+        head: [headers],
+        body: tableBody,
+        theme: "grid",
+        margin: { left: margin, right: margin },
+        styles: {
+          fontSize: 8,
+          cellPadding: 2,
+          lineColor: [200, 200, 200],
+          lineWidth: 0.2,
+        },
+        headStyles: {
+          fillColor: primaryColor,
+          textColor: [255, 255, 255],
+          fontStyle: "bold",
+          fontSize: 8,
+          halign: "center",
+        },
+        bodyStyles: {
+          halign: "right",
+        },
+        columnStyles: {
+          0: { halign: "center", cellWidth: 14 },
+          1: { halign: "left" },
+        },
+        alternateRowStyles: {
+          fillColor: [240, 248, 252],
+        },
+        didDrawPage(data) {
+          // Pie de página en cada página
+          const pageCount = (pdf as any).internal.getNumberOfPages();
+          pdf.setFontSize(8);
+          pdf.setTextColor(150, 150, 150);
+          pdf.text(
+            `Sistema Financiero — Reporte de Depreciación`,
+            margin,
+            pdf.internal.pageSize.getHeight() - 8
+          );
+          pdf.text(
+            `Página ${data.pageNumber} de ${pageCount}`,
+            pageWidth - margin,
+            pdf.internal.pageSize.getHeight() - 8,
+            { align: "right" }
+          );
+        },
+      });
+
+      pdf.save(`depreciacion_${metodoUI.toLowerCase()}_${new Date().toISOString().slice(0, 10)}.pdf`);
+    } catch (error) {
+      console.error("Error al generar PDF:", error);
+      alert("Error al generar el PDF. Por favor intente de nuevo.");
     }
   }
 
@@ -91,6 +292,10 @@ export default function DepreciacionResults(props: {
           Copiar CSV
         </button>
 
+        <button type="button" onClick={handleDownloadPDF} style={buttonStyle} disabled={result.rows.length === 0}>
+          Descargar PDF
+        </button>
+
         {copyStatus && <span style={{ fontSize: 13, opacity: 0.85 }}>{copyStatus}</span>}
       </div>
 
@@ -145,7 +350,6 @@ function DepreciacionTable({ rows }: { rows: DepreciationRow[] }) {
 /* -------------------- Export helpers -------------------- */
 
 function buildCSV(rows: DepreciationRow[]): string {
-  // Encabezados consistentes con la tabla
   const headers = [
     "Periodo",
     "Etiqueta",
@@ -182,7 +386,6 @@ function buildCSV(rows: DepreciationRow[]): string {
 
 function escapeCSV(value: string | number): string {
   const s = String(value);
-  // Si contiene coma, comillas o salto de línea, se envuelve en comillas y se escapan comillas dobles
   if (/[",\n]/.test(s)) {
     return `"${s.replace(/"/g, '""')}"`;
   }

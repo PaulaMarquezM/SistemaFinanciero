@@ -4,12 +4,24 @@ import type { DepreciationScheduleConfig } from "../../lib/depreciacion/types";
 
 type MetodoUI = "LINEA_RECTA" | "UNIDADES_PRODUCIDAS";
 
+export type TipoActivoSRI = "EDIFICIO" | "MAQUINARIA" | "VEHICULO" | "COMPUTO";
+
+export const TABLA_SRI: Record<TipoActivoSRI, { label: string }> = {
+  EDIFICIO:   { label: "Inmuebles (excepto terrenos)" },
+  MAQUINARIA: { label: "Maquinarias, equipos y muebles" },
+  VEHICULO:   { label: "Vehículos" },
+  COMPUTO:    { label: "Equipos de cómputo y software" },
+};
+
 export default function DepreciacionForm(props: {
   metodo: MetodoUI;
   setMetodo: (v: MetodoUI) => void;
 
   costo: number;
   setCosto: (v: number) => void;
+
+  tipoActivo: TipoActivoSRI;
+  setTipoActivo: (v: TipoActivoSRI) => void;
 
   vidaUtilAnios: number;
   setVidaUtilAnios: (v: number) => void;
@@ -71,16 +83,34 @@ export default function DepreciacionForm(props: {
         </div>
 
         {isLineaRecta && (
-          <label style={labelStyle}>
-            Vida útil (años)
-            <input
-              type="number"
-              value={props.vidaUtilAnios}
-              onChange={(e) => props.setVidaUtilAnios(Number(e.target.value))}
-              style={inputStyle}
-              min={0}
-            />
-          </label>
+          <>
+            <label style={labelStyle}>
+              Tipo de activo (Tabla SRI)
+              <select
+                value={props.tipoActivo}
+                onChange={(e) => {
+                  props.setTipoActivo(e.target.value as TipoActivoSRI);
+                }}
+                style={inputStyle}
+              >
+                <option value="EDIFICIO">Inmuebles (excepto terrenos)</option>
+                <option value="MAQUINARIA">Maquinarias, equipos y muebles</option>
+                <option value="VEHICULO">Vehículos</option>
+                <option value="COMPUTO">Equipos de cómputo y software</option>
+              </select>
+            </label>
+
+            <label style={labelStyle}>
+              Vida útil (años)
+              <input
+                type="number"
+                value={props.vidaUtilAnios}
+                onChange={(e) => props.setVidaUtilAnios(Number(e.target.value))}
+                style={inputStyle}
+                min={0}
+              />
+            </label>
+          </>
         )}
 
         {isUnidades && (
