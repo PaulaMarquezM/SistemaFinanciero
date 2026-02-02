@@ -12,13 +12,11 @@ interface MainLayoutProps {
 const MainLayout = ({ user }: MainLayoutProps) => {
   const isMobile = useIsMobile();
   const location = useLocation();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(!isMobile);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => !isMobile);
 
   useEffect(() => {
-    if (isMobile) {
-      setIsSidebarOpen(false);
-    }
-  }, [location, isMobile]);
+    setIsSidebarOpen(!isMobile);
+  }, [isMobile]);
 
   return (
     // CAMBIO IMPORTANTE: Quitamos 'overflow: hidden' y 'position: relative' restrictivo

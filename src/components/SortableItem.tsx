@@ -24,7 +24,7 @@ export function SortableItem({ id, children, enabled, style: propStyle }: Sortab
     cursor: enabled ? (isDragging ? 'grabbing' : 'grab') : 'default',
     opacity: isDragging ? 0.5 : 1,
     touchAction: 'none',
-    position: 'relative' as 'relative',
+    position: 'relative' as const,
     height: '100%', // Asegura que llene la celda del grid
     ...propStyle // Aquí aplicamos el estilo que viene de fuera (el gridColumn)
   };

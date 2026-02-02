@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { NAV_ITEMS, APP_LOGO } from '../../config/navigation';
+import { NAV_ITEMS } from '../../config/navigation';
 import { X } from 'lucide-react';
 import { palette } from '../../theme/theme'; // Importamos la paleta
 
@@ -51,10 +51,18 @@ const Sidebar = ({ isOpen, isMobile, onToggle, onHover, onLeave }: SidebarProps)
             minWidth: isMobile ? '70px' : '80px', height: '100%', 
             display: 'flex', alignItems: 'center', justifyContent: 'center' 
           }}>
-            {/* Logo con el color Principal */}
-            <div style={{ width: '40px', height: '40px', background: palette.primary.main, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: 'white' }}>
-              {APP_LOGO}
-            </div>
+            {/* Logo con imagen PNG */}
+            <img 
+              src="/LOGOSF.png"  // Coloca tu logo en la carpeta public/logo.png
+              alt="Sistema Financiero"
+              style={{ 
+                width: '40px', 
+                height: '40px', 
+                objectFit: 'contain',
+                borderRadius: '8px',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+              }}
+            />
           </div>
           <span style={{ fontSize: '1.1rem', fontWeight: '600', opacity: isOpen ? 1 : 0, transition: 'opacity 0.2s', marginLeft: '4px', color: palette.text.sidebarActive }}>
             S. Financiero
@@ -68,7 +76,7 @@ const Sidebar = ({ isOpen, isMobile, onToggle, onHover, onLeave }: SidebarProps)
         )}
       </div>
 
-      {/* NAVEGACIÓN */}
+      {/* NAVEGACIÃ“N */}
       <nav style={{ flex: 1, padding: '20px 0', overflowY: 'auto' }}>
         {NAV_ITEMS.map((item) => {
           const isActive = location.pathname === item.path;
@@ -80,7 +88,7 @@ const Sidebar = ({ isOpen, isMobile, onToggle, onHover, onLeave }: SidebarProps)
               onClick={isMobile ? onToggle : undefined} 
               style={{
                 display: 'flex', alignItems: 'center', height: '56px', textDecoration: 'none',
-                // Colores Dinámicos
+                // Colores DinÃ¡micos
                 color: isActive ? palette.text.sidebarActive : palette.text.sidebar,
                 backgroundColor: isActive ? 'rgba(255,255,255,0.1)' : 'transparent',
                 // Borde activo con el color Principal
