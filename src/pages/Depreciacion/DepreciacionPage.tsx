@@ -6,6 +6,7 @@ import { runDepreciation } from "../../lib/depreciacion/engine";
 import { DEFAULT_CONFIG, DEFAULT_RESIDUAL_POLICY } from "../../lib/depreciacion/defaults";
 
 import DepreciacionForm from "../../components/depreciacion/DepreciacionForm";
+import type { TipoActivoSRI } from "../../components/depreciacion/DepreciacionForm";
 import DepreciacionResults from "../../components/depreciacion/DepreciacionResults";
 import DepreciacionExplanation from "../../components/depreciacion/DepreciacionExplanation";
 
@@ -16,6 +17,7 @@ export default function DepreciacionPage() {
   const [metodo, setMetodo] = useState<MetodoUI>("LINEA_RECTA");
 
   const [costo, setCosto] = useState<number>(120000);
+  const [tipoActivo, setTipoActivo] = useState<TipoActivoSRI>("EDIFICIO");
   const [vidaUtilAnios, setVidaUtilAnios] = useState<number>(20);
 
   // Unidades producidas
@@ -103,6 +105,8 @@ export default function DepreciacionPage() {
         setMetodo={setMetodo}
         costo={costo}
         setCosto={setCosto}
+        tipoActivo={tipoActivo}
+        setTipoActivo={setTipoActivo}
         vidaUtilAnios={vidaUtilAnios}
         setVidaUtilAnios={setVidaUtilAnios}
         vidaTotalUnidades={vidaTotalUnidades}
@@ -126,6 +130,7 @@ export default function DepreciacionPage() {
         input={input}
         metodoUI={metodo}
         vidaTotalUnidades={vidaTotalUnidades}
+        tipoActivo={tipoActivo}
       />
 
       <DepreciacionExplanation metodoUI={metodo} baseDias={input.baseDias} />
