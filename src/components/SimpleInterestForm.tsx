@@ -1,4 +1,10 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
+
+type InterestType = "simple" | "compound";
 
 type Row = {
   period: number;
@@ -7,47 +13,214 @@ type Row = {
   end: number;
 };
 
-const th = {
-  padding: "14px",
-  fontWeight: 700,
-  color: "#0f172a",
-};
+const styles = {
+  page: {
+    background: "#f8fafc",
+    borderRadius: 20,
+    padding: 28,
+  } as React.CSSProperties,
 
-const td = {
-  padding: "12px",
-  color: "#334155",
+  title: {
+    fontWeight: 900,
+    fontSize: 34,
+    margin: "0 0 18px",
+    color: "#0f172a",
+    letterSpacing: -0.5,
+  } as React.CSSProperties,
+
+  subtitle: {
+    marginTop: -6,
+    marginBottom: 22,
+    color: "#475569",
+    fontSize: 14,
+  } as React.CSSProperties,
+
+  grid2: {
+    display: "grid",
+    gridTemplateColumns: "1.2fr 1fr",
+    gap: 18,
+  } as React.CSSProperties,
+
+  card: {
+    background: "white",
+    borderRadius: 16,
+    padding: 18,
+    boxShadow: "0 10px 20px rgba(2, 6, 23, 0.06)",
+    border: "1px solid rgba(15, 23, 42, 0.08)",
+  } as React.CSSProperties,
+
+  cardTitle: {
+    fontWeight: 800,
+    color: "#0f172a",
+    margin: "0 0 12px",
+    fontSize: 16,
+  } as React.CSSProperties,
+
+  formGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: 14,
+  } as React.CSSProperties,
+
+  field: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 6,
+  } as React.CSSProperties,
+
+  label: {
+    fontSize: 13,
+    color: "#334155",
+    fontWeight: 700,
+  } as React.CSSProperties,
+
+  input: {
+    padding: "10px 12px",
+    borderRadius: 12,
+    border: "1px solid rgba(15, 23, 42, 0.18)",
+    outline: "none",
+    fontSize: 14,
+  } as React.CSSProperties,
+
+  select: {
+    padding: "10px 12px",
+    borderRadius: 12,
+    border: "1px solid rgba(15, 23, 42, 0.18)",
+    outline: "none",
+    fontSize: 14,
+    background: "white",
+  } as React.CSSProperties,
+
+  btnRow: {
+    display: "flex",
+    gap: 10,
+    flexWrap: "wrap",
+    marginTop: 14,
+  } as React.CSSProperties,
+
+  primaryBtn: {
+    padding: "12px 18px",
+    borderRadius: 12,
+    border: "none",
+    background: "#0f3d4c",
+    color: "white",
+    fontWeight: 800,
+    cursor: "pointer",
+  } as React.CSSProperties,
+
+  ghostBtn: {
+    padding: "12px 18px",
+    borderRadius: 12,
+    border: "1px solid rgba(15, 23, 42, 0.18)",
+    background: "white",
+    color: "#0f172a",
+    fontWeight: 800,
+    cursor: "pointer",
+  } as React.CSSProperties,
+
+  hint: {
+    fontSize: 13,
+    color: "#475569",
+    lineHeight: 1.5,
+  } as React.CSSProperties,
+
+  metricsGrid: {
+    marginTop: 18,
+    display: "grid",
+    gridTemplateColumns: "repeat(3, 1fr)",
+    gap: 12,
+  } as React.CSSProperties,
+
+  metric: {
+    background: "white",
+    borderRadius: 16,
+    padding: 16,
+    boxShadow: "0 10px 20px rgba(2, 6, 23, 0.06)",
+    border: "1px solid rgba(15, 23, 42, 0.08)",
+  } as React.CSSProperties,
+
+  metricLabel: {
+    color: "#475569",
+    fontSize: 13,
+    fontWeight: 700,
+  } as React.CSSProperties,
+
+  metricValue: {
+    marginTop: 6,
+    fontSize: 22,
+    fontWeight: 900,
+    color: "#0f172a",
+  } as React.CSSProperties,
+
+  sectionTitle: {
+    marginTop: 22,
+    marginBottom: 10,
+    fontSize: 18,
+    fontWeight: 900,
+    color: "#0f172a",
+  } as React.CSSProperties,
+
+  tableWrap: {
+    background: "white",
+    borderRadius: 16,
+    padding: 14,
+    boxShadow: "0 10px 20px rgba(2, 6, 23, 0.06)",
+    border: "1px solid rgba(15, 23, 42, 0.08)",
+    overflowX: "auto",
+  } as React.CSSProperties,
+
+  table: {
+    width: "100%",
+    borderCollapse: "collapse",
+    textAlign: "center",
+    minWidth: 680,
+  } as React.CSSProperties,
+
+  th: {
+    padding: 12,
+    fontWeight: 900,
+    color: "#0f172a",
+    background: "#f1f5f9",
+    borderBottom: "1px solid rgba(15, 23, 42, 0.08)",
+    fontSize: 13,
+  } as React.CSSProperties,
+
+  td: {
+    padding: 12,
+    color: "#334155",
+    borderBottom: "1px solid rgba(15, 23, 42, 0.08)",
+    fontSize: 13,
+  } as React.CSSProperties,
 };
 
 export default function SimpleInterestForm() {
   const [capital, setCapital] = useState<number>(0);
   const [rate, setRate] = useState<number>(0);
   const [time, setTime] = useState<number>(0);
-  const [type, setType] = useState<"simple" | "compound">("simple");
+  const [type, setType] = useState<InterestType>("simple");
+
+  const [clientName, setClientName] = useState("");
+  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
 
   const [rows, setRows] = useState<Row[]>([]);
   const [interestTotal, setInterestTotal] = useState(0);
   const [finalAmount, setFinalAmount] = useState(0);
 
-  const calculate = () => {
-    if (capital <= 0 || rate <= 0 || time <= 0) return;
+  const canCalculate = useMemo(() => capital > 0 && rate > 0 && time > 0, [capital, rate, time]);
 
-    let data: Row[] = [];
+  const calculate = () => {
+    if (!canCalculate) return;
+
+    const data: Row[] = [];
     let current = capital;
     let totalInterest = 0;
     const r = rate / 100;
 
     for (let i = 1; i <= time; i++) {
-      let interest =
-        type === "simple" ? capital * r : current * r;
+      const interest = type === "simple" ? capital * r : current * r;
+      const end = current + interest;
 
-      let end = current + interest;
-
-      data.push({
-        period: i,
-        start: current,
-        interest,
-        end,
-      });
+      data.push({ period: i, start: current, interest, end });
 
       current = end;
       totalInterest += interest;
@@ -58,144 +231,244 @@ export default function SimpleInterestForm() {
     setFinalAmount(current);
   };
 
+  const exportExcel = () => {
+    if (rows.length === 0) return;
+
+    const headerInfo = [
+      ["Reporte", "Cálculo de Interés Simple y Compuesto"],
+      ["Cliente", clientName || "—"],
+      ["Fecha", date],
+      ["Tipo", type === "simple" ? "Interés Simple" : "Interés Compuesto"],
+      ["Capital", capital],
+      ["Tasa anual (%)", rate],
+      ["Tiempo (años)", time],
+      [],
+    ];
+
+    const tableData = [
+      ["Periodo", "Capital Inicial", "Interés", "Capital Final"],
+      ...rows.map((r) => [r.period, Number(r.start.toFixed(2)), Number(r.interest.toFixed(2)), Number(r.end.toFixed(2))]),
+    ];
+
+    const summary = [
+      [],
+      ["Resumen", "", "", ""],
+      ["Capital", Number(capital.toFixed(2)), "", ""],
+      ["Interés generado", Number(interestTotal.toFixed(2)), "", ""],
+      ["Monto final", Number(finalAmount.toFixed(2)), "", ""],
+    ];
+
+    const ws = XLSX.utils.aoa_to_sheet([...headerInfo, ...tableData, ...summary]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Interés");
+    const out = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+
+    saveAs(new Blob([out], { type: "application/octet-stream" }), "calculo-interes.xlsx");
+  };
+
+  const exportPDF = () => {
+    if (rows.length === 0) return;
+
+    const doc = new jsPDF();
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.text("Cálculo de Interés Simple y Compuesto", 14, 16);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+
+    const infoLines = [
+      `Cliente: ${clientName || "—"}`,
+      `Fecha: ${date}`,
+      `Tipo: ${type === "simple" ? "Interés Simple" : "Interés Compuesto"}`,
+      `Capital: $${capital.toFixed(2)}`,
+      `Tasa anual: ${rate}%`,
+      `Tiempo: ${time} años`,
+    ];
+
+    let y = 26;
+    infoLines.forEach((line) => {
+      doc.text(line, 14, y);
+      y += 7;
+    });
+
+    autoTable(doc, {
+      startY: y + 4,
+      head: [["Periodo", "Capital Inicial", "Interés", "Capital Final"]],
+      body: rows.map((r) => [
+        r.period,
+        r.start.toFixed(2),
+        r.interest.toFixed(2),
+        r.end.toFixed(2),
+      ]),
+      styles: { fontSize: 10 },
+      headStyles: { fillColor: [15, 61, 76] },
+    });
+
+    doc.save("calculo-interes.pdf");
+  };
+
   return (
-    <div
-      style={{
-        background: "#f8fafc",
-        borderRadius: "20px",
-        padding: "32px",
-      }}
-    >
-      {/* ===== ENTRADAS ===== */}
-      <h2 style={{ fontWeight: 800, marginBottom: 20 }}>
-        Cálculo de Interés Simple y Compuesto
-      </h2>
-
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-        <div>
-          <label>Capital ($)</label>
-          <input
-            type="number"
-            value={capital || ""}
-            onChange={(e) => setCapital(Number(e.target.value))}
-            placeholder="Ej: 10000"
-          />
-        </div>
-
-        <div>
-          <label>Tasa anual (%)</label>
-          <input
-            type="number"
-            value={rate || ""}
-            onChange={(e) => setRate(Number(e.target.value))}
-            placeholder="Ej: 12"
-          />
-        </div>
-
-        <div>
-          <label>Tiempo (años)</label>
-          <input
-            type="number"
-            value={time || ""}
-            onChange={(e) => setTime(Number(e.target.value))}
-            placeholder="Ej: 3"
-          />
-        </div>
-
-        <div>
-          <label>Tipo de interés</label>
-          <select
-            value={type}
-            onChange={(e) =>
-              setType(e.target.value as "simple" | "compound")
-            }
-          >
-            <option value="simple">Interés Simple</option>
-            <option value="compound">Interés Compuesto</option>
-          </select>
-        </div>
+    <div style={styles.page}>
+      <div style={{ marginBottom: 10 }}>
+        <h1 style={styles.title}>Cálculo de Interés Simple y Compuesto</h1>
+        <div style={styles.subtitle}>Ingresa los datos, calcula y exporta el reporte en PDF o Excel.</div>
       </div>
 
-      <button
-        onClick={calculate}
-        style={{
-          marginTop: 20,
-          padding: "12px 28px",
-          background: "#0f3d4c",
-          color: "white",
-          borderRadius: 12,
-          fontWeight: 700,
-        }}
-      >
-        Calcular
-      </button>
+      <div style={styles.grid2}>
+        {/* ===== CARD ENTRADAS ===== */}
+        <div style={styles.card}>
+          <div style={styles.cardTitle}>Entradas</div>
+
+          <div style={styles.formGrid}>
+            <div style={styles.field}>
+              <label style={styles.label}>Capital ($)</label>
+              <input
+                style={styles.input}
+                type="number"
+                value={capital || ""}
+                onChange={(e) => setCapital(Number(e.target.value))}
+                placeholder="Ej: 10000"
+              />
+            </div>
+
+            <div style={styles.field}>
+              <label style={styles.label}>Tasa anual (%)</label>
+              <input
+                style={styles.input}
+                type="number"
+                value={rate || ""}
+                onChange={(e) => setRate(Number(e.target.value))}
+                placeholder="Ej: 12"
+              />
+            </div>
+
+            <div style={styles.field}>
+              <label style={styles.label}>Tiempo (años)</label>
+              <input
+                style={styles.input}
+                type="number"
+                value={time || ""}
+                onChange={(e) => setTime(Number(e.target.value))}
+                placeholder="Ej: 5"
+              />
+            </div>
+
+            <div style={styles.field}>
+              <label style={styles.label}>Tipo de interés</label>
+              <select
+                style={styles.select}
+                value={type}
+                onChange={(e) => setType(e.target.value as InterestType)}
+              >
+                <option value="simple">Interés Simple</option>
+                <option value="compound">Interés Compuesto</option>
+              </select>
+            </div>
+          </div>
+
+          <div style={{ marginTop: 14, ...styles.formGrid }}>
+            <div style={styles.field}>
+              <label style={styles.label}>Nombre del cliente (opcional)</label>
+              <input
+                style={styles.input}
+                value={clientName}
+                onChange={(e) => setClientName(e.target.value)}
+                placeholder="Ej: Juan Pérez"
+              />
+            </div>
+
+            <div style={styles.field}>
+              <label style={styles.label}>Fecha</label>
+              <input
+                style={styles.input}
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div style={styles.btnRow}>
+            <button style={styles.primaryBtn} onClick={calculate} disabled={!canCalculate}>
+              Calcular
+            </button>
+
+            <button style={styles.ghostBtn} onClick={exportPDF} disabled={rows.length === 0}>
+              Exportar PDF
+            </button>
+
+            <button style={styles.ghostBtn} onClick={exportExcel} disabled={rows.length === 0}>
+              Exportar Excel
+            </button>
+          </div>
+
+          {!canCalculate && (
+            <div style={{ marginTop: 10, color: "#ef4444", fontSize: 13, fontWeight: 700 }}>
+              * Completa Capital, Tasa y Tiempo (mayores que 0).
+            </div>
+          )}
+        </div>
+
+        {/* ===== CARD EXPLICACIÓN ===== */}
+        <div style={styles.card}>
+          <div style={styles.cardTitle}>Explicación académica</div>
+          <div style={styles.hint}>
+            <strong>Interés simple:</strong> el interés se calcula siempre sobre el capital inicial durante todos los
+            periodos.
+            <br />
+            <br />
+            <strong>Interés compuesto:</strong> el interés se calcula sobre el capital acumulado, por eso el crecimiento
+            aumenta con el tiempo.
+            <br />
+            <br />
+            Fórmula simple: <strong>I = C · i · t</strong> <br />
+            Monto simple: <strong>M = C + I</strong>
+          </div>
+        </div>
+      </div>
 
       {/* ===== RESULTADOS ===== */}
       {rows.length > 0 && (
         <>
-          <div
-            style={{
-              marginTop: 32,
-              display: "grid",
-              gridTemplateColumns: "repeat(3, 1fr)",
-              gap: 16,
-            }}
-          >
-            <div className="card">
-              <strong>Capital</strong>
-              <div>${capital.toFixed(2)}</div>
+          <div style={styles.metricsGrid}>
+            <div style={styles.metric}>
+              <div style={styles.metricLabel}>Capital</div>
+              <div style={styles.metricValue}>${capital.toFixed(2)}</div>
             </div>
 
-            <div className="card">
-              <strong>Interés generado</strong>
-              <div>${interestTotal.toFixed(2)}</div>
+            <div style={styles.metric}>
+              <div style={styles.metricLabel}>Interés generado</div>
+              <div style={styles.metricValue}>${interestTotal.toFixed(2)}</div>
             </div>
 
-            <div className="card">
-              <strong>Monto final</strong>
-              <div>${finalAmount.toFixed(2)}</div>
+            <div style={styles.metric}>
+              <div style={styles.metricLabel}>Monto final</div>
+              <div style={styles.metricValue}>${finalAmount.toFixed(2)}</div>
             </div>
           </div>
 
-          {/* ===== TABLA ===== */}
-          <h2 style={{ fontWeight: 800, margin: "32px 0 16px" }}>
-            Evolución del capital
-          </h2>
+          <div style={styles.sectionTitle}>Evolución del capital</div>
 
-          <div
-            style={{
-              background: "white",
-              borderRadius: "16px",
-              padding: "16px",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
-            }}
-          >
-            <table
-              style={{
-                width: "100%",
-                borderCollapse: "collapse",
-                textAlign: "center",
-              }}
-            >
+          <div style={styles.tableWrap}>
+            <table style={styles.table}>
               <thead>
-                <tr style={{ background: "#f1f5f9" }}>
-                  <th style={th}>Periodo</th>
-                  <th style={th}>Capital inicial</th>
-                  <th style={th}>Interés</th>
-                  <th style={th}>Capital final</th>
+                <tr>
+                  <th style={styles.th}>Periodo</th>
+                  <th style={styles.th}>Capital inicial</th>
+                  <th style={styles.th}>Interés</th>
+                  <th style={styles.th}>Capital final</th>
                 </tr>
               </thead>
 
               <tbody>
                 {rows.map((r) => (
-                  <tr
-                    key={r.period}
-                    style={{ borderBottom: "1px solid #e5e7eb" }}
-                  >
-                    <td style={td}>{r.period}</td>
-                    <td style={td}>${r.start.toFixed(2)}</td>
-                    <td style={td}>${r.interest.toFixed(2)}</td>
-                    <td style={{ ...td, fontWeight: 700 }}>
+                  <tr key={r.period}>
+                    <td style={styles.td}>{r.period}</td>
+                    <td style={styles.td}>${r.start.toFixed(2)}</td>
+                    <td style={styles.td}>${r.interest.toFixed(2)}</td>
+                    <td style={{ ...styles.td, fontWeight: 900, color: "#0f172a" }}>
                       ${r.end.toFixed(2)}
                     </td>
                   </tr>
@@ -208,3 +481,6 @@ export default function SimpleInterestForm() {
     </div>
   );
 }
+
+
+
