@@ -6,6 +6,7 @@ import DepreciacionPage from "./pages/Depreciacion/DepreciacionPage";
 import AmortizationPage from "./pages/AmortizationPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
+import Reportes from "./pages/Reportes";
 import type { User } from "./types/layout.types";
 
 // Datos de ejemplo (esto sí déjalo por ahora)
@@ -42,6 +43,7 @@ const App = () => {
           <Route path="interes-compuesto" element={<CompoundInterestPage />} />
           <Route path="depreciacion" element={<DepreciacionPage />} />
           <Route path="amortizacion" element={<AmortizationPage />} />
+          <Route path="reportes" element={<Reportes />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
@@ -50,3 +52,4 @@ const App = () => {
 };
 
 export default App;
+
