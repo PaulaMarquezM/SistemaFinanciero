@@ -1,7 +1,8 @@
 import { Link, useLocation } from 'react-router-dom';
 import { NAV_ITEMS } from '../../config/navigation';
-import { X } from 'lucide-react';
-import { palette } from '../../theme/theme'; // Importamos la paleta
+// 1. Agregamos el icono para el reporte
+import { X, FileText } from 'lucide-react'; 
+import { palette } from '../../theme/theme';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -19,6 +20,9 @@ const Sidebar = ({ isOpen, isMobile, onToggle, onHover, onLeave }: SidebarProps)
     return isOpen ? '260px' : '80px';
   };
 
+  // Variable para saber si estamos en la página de reporte
+  const isReporteActive = location.pathname === '/cuentas-por-cobrar';
+
   return (
     <aside 
       onMouseEnter={onHover}
@@ -29,7 +33,7 @@ const Sidebar = ({ isOpen, isMobile, onToggle, onHover, onLeave }: SidebarProps)
         top: 0, 
         zIndex: 50,
         height: '100vh', 
-        // USAMOS LA PALETA: Fondo Oscuro, Texto Complementario
+        // VOLVEMOS A USAR TU PALETA ORIGINAL (AZUL)
         backgroundColor: palette.background.sidebar, 
         color: palette.text.sidebar,
         transition: 'width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)',
@@ -51,17 +55,11 @@ const Sidebar = ({ isOpen, isMobile, onToggle, onHover, onLeave }: SidebarProps)
             minWidth: isMobile ? '70px' : '80px', height: '100%', 
             display: 'flex', alignItems: 'center', justifyContent: 'center' 
           }}>
-            {/* Logo con imagen PNG */}
+            {/* Logo */}
             <img 
-              src="/LOGOSF.png"  // Coloca tu logo en la carpeta public/logo.png
-              alt="Sistema Financiero"
-              style={{ 
-                width: '40px', 
-                height: '40px', 
-                objectFit: 'contain',
-                borderRadius: '8px',
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
-              }}
+              src="/LOGOSF.png" 
+              alt="SF"
+              style={{ width: '40px', height: '40px', objectFit: 'contain', borderRadius: '8px' }}
             />
           </div>
           <span style={{ fontSize: '1.1rem', fontWeight: '600', opacity: isOpen ? 1 : 0, transition: 'opacity 0.2s', marginLeft: '4px', color: palette.text.sidebarActive }}>
@@ -76,8 +74,10 @@ const Sidebar = ({ isOpen, isMobile, onToggle, onHover, onLeave }: SidebarProps)
         )}
       </div>
 
-      {/* NAVEGACIÃ“N */}
+      {/* NAVEGACIÓN */}
       <nav style={{ flex: 1, padding: '20px 0', overflowY: 'auto' }}>
+        
+        {/* Ítems originales (Dashboard, etc.) */}
         {NAV_ITEMS.map((item) => {
           const isActive = location.pathname === item.path;
           const Icon = item.icon;
@@ -88,10 +88,8 @@ const Sidebar = ({ isOpen, isMobile, onToggle, onHover, onLeave }: SidebarProps)
               onClick={isMobile ? onToggle : undefined} 
               style={{
                 display: 'flex', alignItems: 'center', height: '56px', textDecoration: 'none',
-                // Colores DinÃ¡micos
                 color: isActive ? palette.text.sidebarActive : palette.text.sidebar,
                 backgroundColor: isActive ? 'rgba(255,255,255,0.1)' : 'transparent',
-                // Borde activo con el color Principal
                 borderLeft: isActive ? `4px solid ${palette.primary.main}` : '4px solid transparent',
                 transition: 'background 0.2s, color 0.2s', overflow: 'hidden'
               }}
@@ -105,6 +103,29 @@ const Sidebar = ({ isOpen, isMobile, onToggle, onHover, onLeave }: SidebarProps)
             </Link>
           );
         })}
+
+        {/* --- 2. BOTÓN MANUAL: CUENTAS POR COBRAR --- */}
+        <Link
+          to="/cuentas-por-cobrar"
+          onClick={isMobile ? onToggle : undefined}
+          style={{
+            display: 'flex', alignItems: 'center', height: '56px', textDecoration: 'none',
+            // Usamos la lógica de "isReporteActive" para que se ilumine igual que los otros
+            color: isReporteActive ? palette.text.sidebarActive : palette.text.sidebar,
+            backgroundColor: isReporteActive ? 'rgba(255,255,255,0.1)' : 'transparent',
+            borderLeft: isReporteActive ? `4px solid ${palette.primary.main}` : '4px solid transparent',
+            transition: 'background 0.2s, color 0.2s', overflow: 'hidden'
+          }}
+        >
+          <div style={{ minWidth: isMobile ? '70px' : '80px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <FileText size={24} strokeWidth={isReporteActive ? 2.5 : 2} />
+          </div>
+          <span style={{ opacity: isOpen ? 1 : 0, transition: 'opacity 0.3s', fontWeight: isReporteActive ? 600 : 400 }}>
+            Cuentas por Cobrar
+          </span>
+        </Link>
+        {/* ------------------------------------------- */}
+
       </nav>
     </aside>
   );

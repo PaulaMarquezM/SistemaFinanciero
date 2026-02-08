@@ -8,7 +8,9 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import type { User } from "./types/layout.types";
 
-// Datos de ejemplo (esto sí déjalo por ahora)
+// 1. IMPORTANTE: Importamos tu reporte (Asegúrate que el archivo esté en src/)
+import ReporteCobros from "./ReporteCobros"; 
+
 const mockUser: User = {
   name: "Carlos Rodríguez",
   role: "Administrador Financiero",
@@ -42,6 +44,11 @@ const App = () => {
           <Route path="interes-compuesto" element={<CompoundInterestPage />} />
           <Route path="depreciacion" element={<DepreciacionPage />} />
           <Route path="amortizacion" element={<AmortizationPage />} />
+          
+          {/* 2. IMPORTANTE: Aquí está la ruta que faltaba */}
+          <Route path="cuentas-por-cobrar" element={<ReporteCobros />} />
+
+          {/* Esta línea nos devuelve al inicio si la ruta no existe */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
