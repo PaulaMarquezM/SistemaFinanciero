@@ -7,10 +7,13 @@ import AmortizationPage from "./pages/AmortizationPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import Reportes from "./pages/Reportes";
-import type { User } from "./types/layout.types";
 
-// 1. IMPORTANTE: Importamos tu reporte (Asegúrate que el archivo esté en src/)
-import ReporteCobros from "./ReporteCobros"; 
+// --- IMPORTACIONES NUEVAS ---
+import CustomersPage from "./pages/CustomersPage";
+import CreditsPage from "./pages/CreditsPage";
+import ReporteCobros from "./ReporteCobros"; // Asegúrate que la ruta sea correcta
+
+import type { User } from "./types/layout.types";
 
 const mockUser: User = {
   name: "Carlos Rodríguez",
@@ -41,16 +44,23 @@ const App = () => {
             </RequireAuth>
           }
         >
+          {/* Dashboard Principal */}
           <Route index element={<DashboardPage />} />
+
+          {/* Módulos Financieros */}
           <Route path="interes-compuesto" element={<CompoundInterestPage />} />
           <Route path="depreciacion" element={<DepreciacionPage />} />
           <Route path="amortizacion" element={<AmortizationPage />} />
           
-          {/* 2. IMPORTANTE: Aquí está la ruta que faltaba */}
-          <Route path="cuentas-por-cobrar" element={<ReporteCobros />} />
+          {/* Gestión de Datos (NUEVAS RUTAS) */}
+          <Route path="clientes" element={<CustomersPage />} />
+          <Route path="creditos" element={<CreditsPage />} />
 
-          {/* Esta línea nos devuelve al inicio si la ruta no existe */}
+          {/* Reportes */}
+          <Route path="cuentas-por-cobrar" element={<ReporteCobros />} />
           <Route path="reportes" element={<Reportes />} />
+
+          {/* Redirección por defecto */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
@@ -59,4 +69,3 @@ const App = () => {
 };
 
 export default App;
-

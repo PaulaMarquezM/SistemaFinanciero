@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Calendar, Search, DollarSign, Users, FileText, AlertCircle, TrendingUp, Filter } from 'lucide-react';
+import { Calendar, Search, Users, FileText, AlertCircle, TrendingUp, Filter } from 'lucide-react';
 
 interface Cobro {
   fecha_vencimiento: string;
@@ -26,11 +26,41 @@ const ReporteCobros = () => {
     try {
       const response = await fetch(`http://127.0.0.1:8000/api/v1/receivables/report?year=${year}&month=${month}`);
       if (!response.ok) throw new Error('Error de conexión');
+      
       const data = await response.json();
-      setCobros(data);
+      console.log("Respuesta del Backend:", data); 
+
+      // --- CORRECCIÓN PRINCIPAL ---
+      let datosCrudos: any[] = [];
+
+      // 1. Detectamos dónde viene la lista (prioridad a 'rows' que es lo que vimos en consola)
+      if (data && Array.isArray(data.rows)) {
+        datosCrudos = data.rows;
+      } else if (data && Array.isArray(data.data)) {
+        datosCrudos = data.data;
+      } else if (Array.isArray(data)) {
+        datosCrudos = data;
+      }
+
+      // 2. Convertimos los nombres de variables (Backend Inglés -> Frontend Español)
+      // Esto evita que la tabla salga vacía si los nombres no coinciden
+      const cobrosFormateados: Cobro[] = datosCrudos.map((item: any) => ({
+        fecha_vencimiento: item.due_date || item.fecha_vencimiento,
+        monto_esperado: item.amount_due || item.monto_esperado || 0,
+        nombre_cliente: item.customer_name || item.nombre_cliente || "Cliente",
+        documento_cliente: item.customer_id ? String(item.customer_id) : (item.documento_cliente || "N/A"),
+        id_credito: item.id || item.id_credito || 0, 
+        numero_cuota: item.number || item.numero_cuota || 1, // Si no viene, asumimos 1
+        estado: item.status || item.estado || "Pendiente"
+      }));
+
+      setCobros(cobrosFormateados);
+      // ----------------------------
+
     } catch (err) {
       setError('No se pudo cargar la información.');
       console.error(err);
+      setCobros([]);
     } finally {
       setLoading(false);
     }
@@ -38,7 +68,7 @@ const ReporteCobros = () => {
 
   useEffect(() => {
     cargarReporte();
-  }, []);
+  }, []); // Carga inicial
 
   // Cálculos para las tarjetas KPI
   const totalMonto = cobros.reduce((acc, curr) => acc + curr.monto_esperado, 0);
@@ -94,7 +124,7 @@ const ReporteCobros = () => {
         </div>
       </div>
 
-      {/* TARJETAS KPI (Idénticas al Dashboard) */}
+      {/* TARJETAS KPI */}
       <div style={styles.statsGrid}>
         {/* Card 1: Total Dinero */}
         <div style={styles.card}>
@@ -179,7 +209,7 @@ const ReporteCobros = () => {
                         <span style={styles.amount}>${c.monto_esperado.toFixed(2)}</span>
                     </td>
                     <td style={{ ...styles.td, ...styles.tdCenter }}>
-                        <span style={styles.statusBadge}>Pendiente</span>
+                        <span style={styles.statusBadge}>{c.estado}</span>
                     </td>
                     </tr>
                 ))
@@ -205,7 +235,7 @@ const ReporteCobros = () => {
 const styles: { [key: string]: React.CSSProperties } = {
   container: {
     padding: '30px',
-    backgroundColor: '#F3F4F6', // El gris claro de fondo de tu Dashboard
+    backgroundColor: '#F3F4F6',
     minHeight: '100vh',
     fontFamily: "'Inter', sans-serif",
     color: '#1F2937',
@@ -273,7 +303,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     cursor: 'pointer',
   },
   buttonPrimary: {
-    backgroundColor: '#2563EB', // Tu azul corporativo
+    backgroundColor: '#2563EB',
     color: 'white',
     border: 'none',
     borderRadius: '8px',
@@ -295,7 +325,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   card: {
     backgroundColor: 'white',
-    borderRadius: '16px', // Bordes más redondeados como en tu imagen
+    borderRadius: '16px',
     padding: '24px',
     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
   },
@@ -327,7 +357,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   cardTrend: {
     fontSize: '13px',
-    color: '#10B981', // Verde éxito
+    color: '#10B981',
     fontWeight: '500',
     marginTop: '4px',
     display: 'block',
@@ -354,7 +384,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   table: {
     width: '100%',
     borderCollapse: 'separate',
-    borderSpacing: '0 8px', // Separación entre filas para efecto flotante
+    borderSpacing: '0 8px',
   },
   tableHeadRow: {
     textAlign: 'left',
@@ -384,7 +414,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     textTransform: 'uppercase',
   },
   tr: {
-    backgroundColor: '#F9FAFB', // Fondo sutil para las filas
+    backgroundColor: '#F9FAFB',
     transition: 'transform 0.1s',
   },
   td: {
@@ -393,7 +423,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     color: '#374151',
     borderTop: '1px solid #F3F4F6',
     borderBottom: '1px solid #F3F4F6',
-    backgroundColor: 'white', // Filas blancas
+    backgroundColor: 'white',
   },
   tdRight: { textAlign: 'right' },
   tdCenter: { textAlign: 'center' },
@@ -433,7 +463,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     backgroundColor: '#FEF2F2',
     color: '#EF4444',
     padding: '4px 12px',
-    borderRadius: '999px', // Pill shape
+    borderRadius: '999px',
     fontSize: '12px',
     fontWeight: '600',
   },
