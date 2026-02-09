@@ -206,7 +206,10 @@ export default function SimpleInterestForm() {
   const [interestTotal, setInterestTotal] = useState(0);
   const [finalAmount, setFinalAmount] = useState(0);
 
-  const canCalculate = useMemo(() => capital > 0 && rate > 0 && time > 0, [capital, rate, time]);
+  const canCalculate = useMemo(
+    () => capital > 0 && rate > 0 && time > 0,
+    [capital, rate, time]
+  );
 
   const calculate = () => {
     if (!canCalculate) return;
@@ -247,7 +250,12 @@ export default function SimpleInterestForm() {
 
     const tableData = [
       ["Periodo", "Capital Inicial", "Interés", "Capital Final"],
-      ...rows.map((r) => [r.period, Number(r.start.toFixed(2)), Number(r.interest.toFixed(2)), Number(r.end.toFixed(2))]),
+      ...rows.map((r) => [
+        r.period,
+        Number(r.start.toFixed(2)),
+        Number(r.interest.toFixed(2)),
+        Number(r.end.toFixed(2)),
+      ]),
     ];
 
     const summary = [
@@ -263,38 +271,132 @@ export default function SimpleInterestForm() {
     XLSX.utils.book_append_sheet(wb, ws, "Interés");
     const out = XLSX.write(wb, { bookType: "xlsx", type: "array" });
 
-    saveAs(new Blob([out], { type: "application/octet-stream" }), "calculo-interes.xlsx");
+    saveAs(
+      new Blob([out], { type: "application/octet-stream" }),
+      "calculo-interes.xlsx"
+    );
   };
 
-  const exportPDF = () => {
+  // ✅ PDF con encabezado + logo + footer con fecha/hora y páginas
+  const exportPDF = async () => {
     if (rows.length === 0) return;
 
     const doc = new jsPDF();
 
+    const formatMoney = (n: number) => `$${n.toFixed(2)}`;
+
+    const loadImageAsDataURL = (url: string) =>
+      new Promise<string>((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) return reject(new Error("No se pudo obtener contexto 2D"));
+          ctx.drawImage(img, 0, 0);
+          resolve(canvas.toDataURL("image/png"));
+        };
+        img.onerror = () => reject(new Error("No se pudo cargar el logo"));
+        img.src = url;
+      });
+
+    const marginX = 14;
+    const headerHeight = 26;
+    const footerHeight = 14;
+
+    // Cargar logo desde /public
+    let logoDataUrl = "";
+    try {
+      logoDataUrl = await loadImageAsDataURL("/LOGOSF.png");
+    } catch {
+      logoDataUrl = "";
+    }
+
+    // Header (se usará en cada página)
+    const drawHeader = () => {
+      const pageW = doc.internal.pageSize.getWidth();
+
+      doc.setFillColor(241, 245, 249);
+      doc.rect(0, 0, pageW, headerHeight, "F");
+
+      if (logoDataUrl) {
+        doc.addImage(logoDataUrl, "PNG", marginX, 4, 18, 18);
+      }
+
+      const titleX = logoDataUrl ? marginX + 22 : marginX;
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(13);
+      doc.setTextColor(15, 23, 42);
+      doc.text("Cooperativa — Sistema Financiero", titleX, 12);
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.setTextColor(71, 85, 105);
+      doc.text("Reporte generado automáticamente", titleX, 18);
+
+      doc.setDrawColor(226, 232, 240);
+      doc.line(marginX, headerHeight, pageW - marginX, headerHeight);
+    };
+
+    // Footer (se usará en cada página)
+    const drawFooter = (pageNumber: number, totalPages: number) => {
+      const pageH = doc.internal.pageSize.getHeight();
+      const pageW = doc.internal.pageSize.getWidth();
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(100, 116, 139);
+
+      doc.text(`Generado: ${new Date().toLocaleString()}`, marginX, pageH - 8);
+      doc.text(
+        `Página ${pageNumber} de ${totalPages}`,
+        pageW - marginX,
+        pageH - 8,
+        { align: "right" }
+      );
+    };
+
+    // --- Primera página ---
+    drawHeader();
+
+    let y = headerHeight + 10;
+
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(16);
-    doc.text("Cálculo de Interés Simple y Compuesto", 14, 16);
+    doc.setFontSize(15);
+    doc.setTextColor(15, 23, 42);
+    doc.text("Cálculo de Interés Simple y Compuesto", marginX, y);
+    y += 8;
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(11);
+    doc.setTextColor(51, 65, 85);
 
     const infoLines = [
       `Cliente: ${clientName || "—"}`,
       `Fecha: ${date}`,
       `Tipo: ${type === "simple" ? "Interés Simple" : "Interés Compuesto"}`,
-      `Capital: $${capital.toFixed(2)}`,
+      `Capital: ${formatMoney(capital)}`,
       `Tasa anual: ${rate}%`,
       `Tiempo: ${time} años`,
     ];
 
-    let y = 26;
     infoLines.forEach((line) => {
-      doc.text(line, 14, y);
-      y += 7;
+      doc.text(line, marginX, y);
+      y += 6;
     });
 
+    // Tabla con repetición de encabezado en cada página (didDrawPage)
     autoTable(doc, {
       startY: y + 4,
+      margin: {
+        top: headerHeight + 8,
+        bottom: footerHeight + 6,
+        left: marginX,
+        right: marginX,
+      },
       head: [["Periodo", "Capital Inicial", "Interés", "Capital Final"]],
       body: rows.map((r) => [
         r.period,
@@ -304,18 +406,59 @@ export default function SimpleInterestForm() {
       ]),
       styles: { fontSize: 10 },
       headStyles: { fillColor: [15, 61, 76] },
+      didDrawPage: () => {
+        // Se ejecuta en cada página creada por la tabla
+        drawHeader();
+      },
     });
+
+    // Resumen (si hay poco espacio, jsPDF lo baja, y si no cabe, crea página)
+    const lastY = (doc as any).lastAutoTable?.finalY ?? y + 30;
+
+    // Si el resumen se va a salir, creamos nueva página
+    const pageH = doc.internal.pageSize.getHeight();
+    if (lastY + 38 > pageH - footerHeight) {
+      doc.addPage();
+      drawHeader();
+    }
+
+    const startSummaryY =
+      (doc as any).lastAutoTable?.finalY && (doc as any).lastAutoTable.finalY < pageH - 60
+        ? (doc as any).lastAutoTable.finalY + 12
+        : headerHeight + 20;
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.setTextColor(15, 23, 42);
+    doc.text("Resumen", marginX, startSummaryY);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    doc.setTextColor(51, 65, 85);
+    doc.text(`Capital: ${formatMoney(capital)}`, marginX, startSummaryY + 8);
+    doc.text(
+      `Interés generado: ${formatMoney(interestTotal)}`,
+      marginX,
+      startSummaryY + 14
+    );
+    doc.text(
+      `Monto final: ${formatMoney(finalAmount)}`,
+      marginX,
+      startSummaryY + 20
+    );
+
+    // Footer en todas las páginas (después de que el PDF ya tiene todas las páginas)
+    const totalPages = doc.getNumberOfPages();
+    for (let p = 1; p <= totalPages; p++) {
+      doc.setPage(p);
+      drawFooter(p, totalPages);
+    }
 
     doc.save("calculo-interes.pdf");
   };
 
   return (
     <div style={styles.page}>
-      <div style={{ marginBottom: 10 }}>
-        <h1 style={styles.title}>Cálculo de Interés Simple y Compuesto</h1>
-        <div style={styles.subtitle}>Ingresa los datos, calcula y exporta el reporte en PDF o Excel.</div>
-      </div>
-
       <div style={styles.grid2}>
         {/* ===== CARD ENTRADAS ===== */}
         <div style={styles.card}>
@@ -391,21 +534,40 @@ export default function SimpleInterestForm() {
           </div>
 
           <div style={styles.btnRow}>
-            <button style={styles.primaryBtn} onClick={calculate} disabled={!canCalculate}>
+            <button
+              style={styles.primaryBtn}
+              onClick={calculate}
+              disabled={!canCalculate}
+            >
               Calcular
             </button>
 
-            <button style={styles.ghostBtn} onClick={exportPDF} disabled={rows.length === 0}>
+            <button
+              style={styles.ghostBtn}
+              onClick={exportPDF}
+              disabled={rows.length === 0}
+            >
               Exportar PDF
             </button>
 
-            <button style={styles.ghostBtn} onClick={exportExcel} disabled={rows.length === 0}>
+            <button
+              style={styles.ghostBtn}
+              onClick={exportExcel}
+              disabled={rows.length === 0}
+            >
               Exportar Excel
             </button>
           </div>
 
           {!canCalculate && (
-            <div style={{ marginTop: 10, color: "#ef4444", fontSize: 13, fontWeight: 700 }}>
+            <div
+              style={{
+                marginTop: 10,
+                color: "#ef4444",
+                fontSize: 13,
+                fontWeight: 700,
+              }}
+            >
               * Completa Capital, Tasa y Tiempo (mayores que 0).
             </div>
           )}
@@ -415,12 +577,12 @@ export default function SimpleInterestForm() {
         <div style={styles.card}>
           <div style={styles.cardTitle}>Explicación académica</div>
           <div style={styles.hint}>
-            <strong>Interés simple:</strong> el interés se calcula siempre sobre el capital inicial durante todos los
-            periodos.
+            <strong>Interés simple:</strong> el interés se calcula siempre sobre el
+            capital inicial durante todos los periodos.
             <br />
             <br />
-            <strong>Interés compuesto:</strong> el interés se calcula sobre el capital acumulado, por eso el crecimiento
-            aumenta con el tiempo.
+            <strong>Interés compuesto:</strong> el interés se calcula sobre el
+            capital acumulado, por eso el crecimiento aumenta con el tiempo.
             <br />
             <br />
             Fórmula simple: <strong>I = C · i · t</strong> <br />
@@ -481,6 +643,3 @@ export default function SimpleInterestForm() {
     </div>
   );
 }
-
-
-

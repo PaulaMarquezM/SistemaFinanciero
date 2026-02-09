@@ -6,6 +6,7 @@ import DepreciacionPage from "./pages/Depreciacion/DepreciacionPage";
 import AmortizationPage from "./pages/AmortizationPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
+import Reportes from "./pages/Reportes";
 import type { User } from "./types/layout.types";
 
 // 1. IMPORTANTE: Importamos tu reporte (Asegúrate que el archivo esté en src/)
@@ -49,6 +50,7 @@ const App = () => {
           <Route path="cuentas-por-cobrar" element={<ReporteCobros />} />
 
           {/* Esta línea nos devuelve al inicio si la ruta no existe */}
+          <Route path="reportes" element={<Reportes />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
@@ -57,3 +59,4 @@ const App = () => {
 };
 
 export default App;
+

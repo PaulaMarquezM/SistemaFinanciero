@@ -2,7 +2,8 @@ import {
   LayoutDashboard, 
   TrendingUp, 
   ArrowDownToLine, 
-  FileSpreadsheet 
+  FileSpreadsheet,
+  BarChart3   // 👈 nuevo icono
 } from 'lucide-react';
 
 export const NAV_ITEMS = [
@@ -25,8 +26,15 @@ export const NAV_ITEMS = [
     title: 'Amortización', 
     path: '/amortizacion', 
     icon: FileSpreadsheet 
+  },
+
+  // ✅ NUEVA PÁGINA
+  { 
+    title: 'Reportes', 
+    path: '/reportes', 
+    icon: BarChart3 
   }
 ];
 
 export const APP_NAME = 'Sistema Financiero';
-export const APP_LOGO = 'SF'; // O puedes importar un icono aquí también
+export const APP_LOGO = 'SF';
