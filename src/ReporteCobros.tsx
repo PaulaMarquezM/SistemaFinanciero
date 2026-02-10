@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { 
-  getReceivables, 
-  getCredits,
-  getCredit, 
-  getAmortizationSchedule, 
+import {
+  getReceivables,
+  getCredit,
+  getAmortizationSchedule,
   type AmortizationParams,
-  type CreditResponse
+  type CreditResponse,
+  type ScheduleRow
 } from './api/financialApi';
 import { 
   TrendingUp, Users, FileText, Filter, Search, Calendar, Eye, X 
@@ -33,15 +33,24 @@ const styles: { [key: string]: React.CSSProperties } = {
   modalBody: { padding: 24, overflowY: 'auto' }
 };
 
+interface ReceivableRow {
+  credit_id?: number;
+  reference?: string;
+  description?: string;
+  due_date: string;
+  customer_name: string;
+  amount_due: number;
+}
+
 const ReporteCobros = () => {
   const [year, setYear] = useState(2026);
   const [month, setMonth] = useState(2);
-  const [stats, setStats] = useState({ total_amount: 0, count: 0, rows: [] as any[] });
+  const [stats, setStats] = useState<{ total_amount: number; count: number; rows: ReceivableRow[] }>({ total_amount: 0, count: 0, rows: [] });
   const [loading, setLoading] = useState(false);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalLoading, setModalLoading] = useState(false);
-  const [selectedSchedule, setSelectedSchedule] = useState<any[]>([]);
+  const [selectedSchedule, setSelectedSchedule] = useState<ScheduleRow[]>([]);
   const [selectedCredit, setSelectedCredit] = useState<CreditResponse | null>(null);
 
   const loadData = async () => {
@@ -53,16 +62,17 @@ const ReporteCobros = () => {
     finally { setLoading(false); }
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadData(); }, []);
 
-  const handleViewTable = async (row: any) => {
+  const handleViewTable = async (row: ReceivableRow) => {
     // ✅ BUSQUEDA AVANZADA DEL ID: Priorizamos el campo credit_id si existe, si no, lo buscamos en el texto
     let creditId = row.credit_id;
     
     if (!creditId) {
         const reference = row.reference || row.description || "";
         const match = reference.match(/#(\d+)/);
-        creditId = match ? parseInt(match[1]) : null;
+        creditId = match ? parseInt(match[1]) : undefined;
     }
 
     if (!creditId) {
@@ -85,7 +95,7 @@ const ReporteCobros = () => {
         };
         const schedule = await getAmortizationSchedule(params);
         setSelectedSchedule(schedule);
-    } catch (error) {
+    } catch {
         alert("Error al cargar la tabla de amortización original.");
         setIsModalOpen(false);
     } finally {

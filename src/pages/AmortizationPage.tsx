@@ -169,7 +169,7 @@ const AmortizationPage = () => {
   const [interestRate, setInterestRate] = useState('12');
   const [term, setTerm] = useState('24');
   const [termType, setTermType] = useState<'months' | 'years'>('months');
-  const [rateType, setRateType] = useState<'annual' | 'monthly'>('annual');
+  const [rateType] = useState<'annual' | 'monthly'>('annual');
   const [method, setMethod] = useState<'frances' | 'aleman'>('frances');
   
   const [schedule, setSchedule] = useState<ScheduleRow[]>([]);

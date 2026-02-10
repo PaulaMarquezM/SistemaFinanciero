@@ -593,7 +593,7 @@ export default function SimpleInterestForm() {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((r, i) => (
+                {rows.map((r) => (
                   <tr key={r.period} style={{ borderBottom: '1px solid #eee' }}>
                     <td style={{ padding: '8px', textAlign: 'center' }}>{r.period}</td>
                     <td style={{ padding: '8px', textAlign: 'center' }}>{formatMoney(r.start)}</td>

@@ -7,7 +7,6 @@ import {
   type Customer 
 } from '../api/financialApi';
 import { 
-  User, 
   Mail, 
   Phone, 
   CreditCard, 
