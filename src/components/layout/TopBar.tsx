@@ -4,16 +4,29 @@ import type { User } from '../../types/layout.types';
 
 interface TopBarProps {
   user: User;
-  onMenuClick?: () => void; // Función opcional
-  isMobile?: boolean;       // Saber si mostrar el botón
+  onMenuClick?: () => void;
+  isMobile?: boolean;
 }
 
 const TopBar = ({ user, onMenuClick, isMobile }: TopBarProps) => {
   const navigate = useNavigate();
 
   const handleLogout = () => {
+    // ✅ CORRECCIÓN: Limpiamos TODO el almacenamiento relacionado al usuario
     localStorage.removeItem('auth_user_id');
+    localStorage.removeItem('auth_user'); 
+    
     navigate('/login', { replace: true });
+  };
+
+  // Función para obtener iniciales
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
   };
 
   return (
@@ -33,7 +46,6 @@ const TopBar = ({ user, onMenuClick, isMobile }: TopBarProps) => {
     >
       {/* LADO IZQUIERDO */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-        {/* BOTÓN HAMBURGUESA (solo móvil) */}
         {isMobile && (
           <button
             onClick={onMenuClick}
@@ -89,7 +101,7 @@ const TopBar = ({ user, onMenuClick, isMobile }: TopBarProps) => {
           {!isMobile && <span>Salir</span>}
         </button>
 
-        {/* INFO USUARIO (oculta en móvil) */}
+        {/* INFO USUARIO */}
         <div
           style={{
             textAlign: 'right',
@@ -117,18 +129,41 @@ const TopBar = ({ user, onMenuClick, isMobile }: TopBarProps) => {
           </p>
         </div>
 
-        {/* AVATAR */}
-        <img
-          src={user.avatar}
-          alt="User"
-          style={{
+        {/* AVATAR DINÁMICO */}
+        {user.avatar ? (
+          <img
+            src={user.avatar}
+            alt="User"
+            style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '50%',
+              objectFit: 'cover',
+              border: '2px solid #e2e8f0',
+            }}
+            onError={(e) => {
+              // Si la imagen falla, ocultamos el img y mostramos el fallback si quisieras complicarlo más,
+              // pero por ahora la URL de ui-avatars es muy confiable.
+              (e.target as HTMLImageElement).style.display = 'none';
+            }}
+          />
+        ) : (
+          <div style={{
             width: '40px',
             height: '40px',
             borderRadius: '50%',
-            objectFit: 'cover',
-            border: '2px solid #e2e8f0',
-          }}
-        />
+            background: '#276E90',
+            color: 'white',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontWeight: 700,
+            fontSize: '0.8rem',
+            border: '2px solid #e2e8f0'
+          }}>
+            {getInitials(user.name)}
+          </div>
+        )}
       </div>
     </header>
   );

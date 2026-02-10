@@ -55,7 +55,7 @@ export interface CreditResponse extends CreditCreate {
   customer?: Customer;
 }
 
-// === TIPOS DE ACTIVOS (NUEVO) ===
+// === TIPOS DE ACTIVOS ===
 export interface AssetDepreciationRow {
   period_number: number;
   period_date: string;
@@ -69,10 +69,10 @@ export interface Asset {
   name: string;
   category: string;
   cost: number;
-  residual_rate: number; // Ej: 0.10 para 10%
+  residual_rate: number; 
   useful_life_years: number;
-  acquisition_date: string; // YYYY-MM-DD
-  depreciations?: AssetDepreciationRow[]; // La tabla calculada
+  acquisition_date: string; 
+  depreciations?: AssetDepreciationRow[]; 
 }
 
 // ================= API CALLS (Llamadas al servidor) =================
@@ -91,6 +91,12 @@ export const createCredit = async (data: CreditCreate): Promise<CreditResponse> 
 
 export const getCredits = async (): Promise<CreditResponse[]> => {
   const response = await financialApi.get('/credits/');
+  return response.data;
+};
+
+// Nueva función necesaria para ver detalles de un crédito individual
+export const getCredit = async (id: number): Promise<CreditResponse> => {
+  const response = await financialApi.get(`/credits/${id}`);
   return response.data;
 };
 
@@ -122,7 +128,8 @@ export const deleteCustomer = async (id: number): Promise<void> => {
 // --- COBRANZAS (Reportes) ---
 
 export const getReceivables = async (year: number, month: number) => {
-  const response = await financialApi.get(`/receivables/?year=${year}&month=${month}`);
+  // ✅ Corregido: Se añade /report para coincidir con el endpoint del backend
+  const response = await financialApi.get(`/receivables/report?year=${year}&month=${month}`);
   return response.data;
 };
 
@@ -131,7 +138,7 @@ export const getReceivablesStats = async (year: number, month: number) => {
   return response.data;
 };
 
-// --- ACTIVOS Y DEPRECIACIÓN (ESTO ES LO QUE TE FALTABA) ---
+// --- ACTIVOS Y DEPRECIACIÓN ---
 
 export const getAssets = async (): Promise<Asset[]> => {
   const response = await financialApi.get('/assets/');
@@ -149,5 +156,5 @@ export const deleteAsset = async (id: number): Promise<void> => {
 
 export const getAssetDepreciation = async (id: number) => {
   const response = await financialApi.get(`/assets/${id}/depreciation`);
-  return response.data; // Retorna { schedule: [...] }
+  return response.data; 
 };

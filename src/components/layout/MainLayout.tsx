@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
@@ -6,21 +6,40 @@ import useIsMobile from '../../hooks/useIsMobile';
 import type { User } from '../../types/layout.types';
 
 interface MainLayoutProps {
-  user: User;
+  user: User; // Este prop puede venir del App.tsx como fallback
 }
 
-const MainLayout = ({ user }: MainLayoutProps) => {
+const MainLayout = ({ user: initialUser }: MainLayoutProps) => {
   const isMobile = useIsMobile();
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => !isMobile);
+
+  // ✅ LOGICA PARA CARGAR EL USUARIO REAL
+  const currentUser = useMemo(() => {
+    const savedUser = localStorage.getItem("auth_user");
+    if (savedUser) {
+      try {
+        return JSON.parse(savedUser) as User;
+      } catch (e) {
+        console.error("Error parsing user data", e);
+      }
+    }
+    // Si no hay nada en localStorage, usamos el usuario inicial ( Richard Burgos )
+    return initialUser;
+  }, [initialUser]);
 
   useEffect(() => {
     setIsSidebarOpen(!isMobile);
   }, [isMobile]);
 
+  // Cerrar sidebar al cambiar de ruta en móviles
+  useEffect(() => {
+    if (isMobile) {
+      setIsSidebarOpen(false);
+    }
+  }, [location.pathname, isMobile]);
+
   return (
-    // CAMBIO IMPORTANTE: Quitamos 'overflow: hidden' y 'position: relative' restrictivo
-    // Dejamos que el documento fluya (App-shell natural)
     <div style={{ display: 'flex', minHeight: '100vh', width: '100%', backgroundColor: '#F5F7FA' }}>
       
       <Sidebar 
@@ -31,6 +50,7 @@ const MainLayout = ({ user }: MainLayoutProps) => {
         onLeave={() => !isMobile && setIsSidebarOpen(false)}
       />
 
+      {/* Overlay para móviles */}
       {isMobile && isSidebarOpen && (
         <div 
           onClick={() => setIsSidebarOpen(false)}
@@ -42,10 +62,9 @@ const MainLayout = ({ user }: MainLayoutProps) => {
       )}
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-        <TopBar user={user} onMenuClick={() => setIsSidebarOpen(true)} isMobile={isMobile} />
+        {/* ✅ Pasamos 'currentUser' (dinámico) en lugar del prop estático */}
+        <TopBar user={currentUser} onMenuClick={() => setIsSidebarOpen(true)} isMobile={isMobile} />
         
-        {/* CAMBIO: Quitamos overflowY: 'auto' interno. 
-            Ahora el scroll es de toda la página (body scroll), que es más nativo y compatible. */}
         <main style={{ flex: 1, padding: isMobile ? '16px' : '24px' }}>
           <Outlet />
         </main>

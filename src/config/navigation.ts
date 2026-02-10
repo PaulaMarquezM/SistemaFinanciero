@@ -3,7 +3,6 @@ import {
   TrendingUp, 
   ArrowDownToLine, 
   FileSpreadsheet,
-  BarChart3,
   Users // 👈 Nuevo icono para clientes
 } from 'lucide-react';
 
@@ -33,11 +32,6 @@ export const NAV_ITEMS = [
     title: 'Amortización', 
     path: '/amortizacion', 
     icon: FileSpreadsheet 
-  },
-  { 
-    title: 'Reportes', 
-    path: '/reportes', 
-    icon: BarChart3 
   },
   // ¿Te falta "Cuentas por Cobrar"? Si ya tienes la página, agrégala también:
   /*

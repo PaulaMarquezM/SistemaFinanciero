@@ -5,7 +5,6 @@ import { palette, shadows } from "../theme/theme";
 import AuthBackground from "../components/AuthBackground";
 import { loginApi } from "../api/authApi";
 
-
 const inputStyle: React.CSSProperties = {
   width: "100%",
   padding: "12px 14px",
@@ -73,52 +72,62 @@ const LoginPage = () => {
 
   const canSubmit = !emailError && !passwordError && email.trim() && password;
 
-
   const onSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setError(null);
+    e.preventDefault();
+    setError(null);
+    setTouched({ email: true, password: true });
+    
+    if (!canSubmit) return;
 
-  setTouched({ email: true, password: true });
-  if (!canSubmit) return;
+    setIsSubmitting(true);
+    try {
+      const res = await loginApi({ email, password });
 
-  setIsSubmitting(true);
-  try {
-    const res = await loginApi({ email, password });
+      // Guardamos el ID para las peticiones al backend
+      localStorage.setItem("auth_user_id", String(res.user_id));
 
-    // Sesión simple temporal (hasta que implementen JWT o /me)
-    localStorage.setItem("auth_user_id", String(res.user_id));
+      // ✅ CORRECCIÓN TS: Castamos a 'any' para extraer campos dinámicos
+      const responseData = res as any;
 
-    navigate("/", { replace: true });
-  } catch (err: unknown) {
-    let msg = "No se pudo iniciar sesión. Revisa tus credenciales.";
-
-    if (typeof err === "object" && err !== null && "response" in err) {
-      const axiosErr = err as {
-        response?: { data?: { detail?: string } };
+      // ✅ NUEVO: Guardamos el objeto de usuario para la Interfaz (TopBar)
+      const userData = {
+        name: responseData.name || "Richard Burgos", 
+        role: responseData.role || "Administrador Financiero",
+        avatar: responseData.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(responseData.name || "Richard Burgos")}&background=276E90&color=fff`
       };
-      msg = axiosErr.response?.data?.detail ?? msg;
+      
+      localStorage.setItem("auth_user", JSON.stringify(userData));
+
+      navigate("/", { replace: true });
+    } catch (err: unknown) {
+      let msg = "No se pudo iniciar sesión. Revisa tus credenciales.";
+
+      if (typeof err === "object" && err !== null && "response" in err) {
+        const axiosErr = err as {
+          response?: { data?: { detail?: string } };
+        };
+        msg = axiosErr.response?.data?.detail ?? msg;
+      }
+
+      setError(msg);
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setError(msg);
-  } finally {
-    setIsSubmitting(false);
-  }
-};
-
+  };
 
   return (
     <AuthBackground> 
-        <div
+      <div
         style={{
-            minHeight: "100vh",
-            background: palette.background.default,
-            display: "grid",
-            placeItems: "center",
-            padding: "24px",
+          minHeight: "100vh",
+          background: palette.background.default,
+          display: "grid",
+          placeItems: "center",
+          padding: "24px",
         }}
-        >
+      >
         <div
-            style={{
+          style={{
             width: "100%",
             maxWidth: "420px",
             background: palette.background.paper,
@@ -126,27 +135,27 @@ const LoginPage = () => {
             padding: "24px",
             boxShadow: shadows.card,
             border: `1px solid ${palette.border}`,
-            }}
+          }}
         >
-            <div style={{ marginBottom: "18px" }}>
+          <div style={{ marginBottom: "18px" }}>
             <h1
-                style={{
+              style={{
                 margin: 0,
                 fontSize: "1.6rem",
                 fontWeight: 800,
                 color: palette.text.primary,
-                }}
+              }}
             >
-                Iniciar sesión
+              Iniciar sesión
             </h1>
             <p style={{ margin: "8px 0 0", color: palette.text.secondary }}>
-                Accede al sistema financiero con tu correo y contraseña.
+              Accede al sistema financiero con tu correo y contraseña.
             </p>
-            </div>
+          </div>
 
-            {error && (
+          {error && (
             <div
-                style={{
+              style={{
                 background: "#fee2e2",
                 border: "1px solid #fecaca",
                 color: "#991b1b",
@@ -154,112 +163,111 @@ const LoginPage = () => {
                 padding: "10px 12px",
                 fontSize: "0.9rem",
                 marginBottom: "14px",
-                }}
+              }}
             >
-                {error}
+              {error}
             </div>
-            )}
+          )}
 
-            <form onSubmit={onSubmit} style={{ display: "grid", gap: "14px" }}>
+          <form onSubmit={onSubmit} style={{ display: "grid", gap: "14px" }}>
             <div>
-                <label style={labelStyle}>Correo</label>
-                <div
+              <label style={labelStyle}>Correo</label>
+              <div
                 style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "10px",
-                    paddingLeft: "12px",
-                    borderRadius: "10px",
-                    border: `1px solid ${palette.border}`,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  paddingLeft: "12px",
+                  borderRadius: "10px",
+                  border: `1px solid ${palette.border}`,
                 }}
-                >
+              >
                 <Mail size={18} color={palette.text.secondary} />
                 <input
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    onBlur={() => setTouched((t) => ({ ...t, email: true }))}
-                    placeholder="correo@ejemplo.com"
-                    autoComplete="email"
-                    style={{ ...inputStyle, border: "none", paddingLeft: 0 }}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  onBlur={() => setTouched((t) => ({ ...t, email: true }))}
+                  placeholder="correo@ejemplo.com"
+                  autoComplete="email"
+                  style={{ ...inputStyle, border: "none", paddingLeft: 0 }}
                 />
-                </div>
-                {emailError && (
+              </div>
+              {emailError && (
                 <div style={{ marginTop: "6px", color: "#b91c1c", fontSize: "0.85rem" }}>
-                    {emailError}
+                  {emailError}
                 </div>
-                )}
+              )}
             </div>
 
             <div>
-                <label style={labelStyle}>Contraseña</label>
-                <div
+              <label style={labelStyle}>Contraseña</label>
+              <div
                 style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "10px",
-                    paddingLeft: "12px",
-                    borderRadius: "10px",
-                    border: `1px solid ${palette.border}`,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  paddingLeft: "12px",
+                  borderRadius: "10px",
+                  border: `1px solid ${palette.border}`,
                 }}
-                >
+              >
                 <Lock size={18} color={palette.text.secondary} />
                 <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    onBlur={() => setTouched((t) => ({ ...t, password: true }))}
-                    placeholder="••••••••"
-                    autoComplete="current-password"
-                    style={{ ...inputStyle, border: "none", paddingLeft: 0 }}
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onBlur={() => setTouched((t) => ({ ...t, password: true }))}
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                  style={{ ...inputStyle, border: "none", paddingLeft: 0 }}
                 />
-                </div>
-                {passwordError && (
+              </div>
+              {passwordError && (
                 <div style={{ marginTop: "6px", color: "#b91c1c", fontSize: "0.85rem" }}>
-                    {passwordError}
+                  {passwordError}
                 </div>
-                )}
+              )}
             </div>
 
             <button
-                type="submit"
-                disabled={!canSubmit || isSubmitting}
-                style={{
-                    ...buttonStyle,
-                    opacity: canSubmit && !isSubmitting ? 1 : 0.6,
-                    cursor: canSubmit && !isSubmitting ? "pointer" : "not-allowed",
-                }}
-                >
-                {isSubmitting ? "Ingresando..." : "Entrar"}
-                </button>
-
-            </form>
-
-            <div
-            style={{
-                marginTop: "16px",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                gap: "12px",
-                flexWrap: "wrap",
-                color: palette.text.secondary,
-                fontSize: "0.9rem",
-            }}
+              type="submit"
+              disabled={!canSubmit || isSubmitting}
+              style={{
+                ...buttonStyle,
+                opacity: canSubmit && !isSubmitting ? 1 : 0.6,
+                cursor: canSubmit && !isSubmitting ? "pointer" : "not-allowed",
+              }}
             >
+              {isSubmitting ? "Ingresando..." : "Entrar"}
+            </button>
+          </form>
+
+          <div
+            style={{
+              marginTop: "16px",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: "12px",
+              flexWrap: "wrap",
+              color: palette.text.secondary,
+              fontSize: "0.9rem",
+            }}
+          >
             <span>¿No tienes cuenta?</span>
             <Link to="/register" style={helperLinkStyle}>
-                Crear cuenta
+              Crear cuenta
             </Link>
-            </div>
+          </div>
 
-            <div style={{ marginTop: "18px", display: "flex", gap: "10px", alignItems: "center" }}>
+          <div style={{ marginTop: "18px", display: "flex", gap: "10px", alignItems: "center" }}>
             <User size={16} color={palette.text.secondary} />
             <span style={{ color: palette.text.secondary, fontSize: "0.85rem" }}>
-                En esta etapa, el login está en modo UI (sin backend).
+              Identidad gestionada por el sistema.
             </span>
-            </div>
+          </div>
         </div>
-        </div>
+      </div>
     </AuthBackground>
   );
 };

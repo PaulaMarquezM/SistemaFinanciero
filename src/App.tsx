@@ -6,7 +6,6 @@ import DepreciacionPage from "./pages/DepreciationPage";
 import AmortizationPage from "./pages/AmortizationPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
-import Reportes from "./pages/Reportes";
 
 // --- IMPORTACIONES NUEVAS ---
 import CustomersPage from "./pages/CustomersPage";
@@ -58,7 +57,6 @@ const App = () => {
 
           {/* Reportes */}
           <Route path="cuentas-por-cobrar" element={<ReporteCobros />} />
-          <Route path="reportes" element={<Reportes />} />
 
           {/* Redirección por defecto */}
           <Route path="*" element={<Navigate to="/" replace />} />
