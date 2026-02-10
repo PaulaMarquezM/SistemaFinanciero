@@ -29,10 +29,9 @@ export interface Customer {
   email: string;
   phone?: string;
   address?: string;
-  document_number?: string; // IMPORTANTE: Debe coincidir con el backend
+  document_number?: string; 
 }
 
-// Actualicé este para incluir document_number también
 export interface CustomerCreate {
   first_name: string;
   last_name: string;
@@ -44,7 +43,7 @@ export interface CustomerCreate {
 
 export interface CreditCreate extends AmortizationParams {
   customer_id: number;
-  start_date?: string; // YYYY-MM-DD
+  start_date?: string; 
   description?: string;
 }
 
@@ -56,54 +55,99 @@ export interface CreditResponse extends CreditCreate {
   customer?: Customer;
 }
 
+// === TIPOS DE ACTIVOS (NUEVO) ===
+export interface AssetDepreciationRow {
+  period_number: number;
+  period_date: string;
+  depreciation_amount: number;
+  accumulated_depreciation: number;
+  book_value: number;
+}
+
+export interface Asset {
+  id?: number;
+  name: string;
+  category: string;
+  cost: number;
+  residual_rate: number; // Ej: 0.10 para 10%
+  useful_life_years: number;
+  acquisition_date: string; // YYYY-MM-DD
+  depreciations?: AssetDepreciationRow[]; // La tabla calculada
+}
+
 // ================= API CALLS (Llamadas al servidor) =================
 
 // --- AMORTIZACIÓN Y CRÉDITOS ---
 
-// 1. Calcular Amortización (Simulación)
 export const getAmortizationSchedule = async (params: AmortizationParams): Promise<ScheduleRow[]> => {
   const response = await financialApi.post('/amortization/calculate', params);
   return response.data.schedule;
 };
 
-// 2. Crear/Guardar Crédito Real
 export const createCredit = async (data: CreditCreate): Promise<CreditResponse> => {
   const response = await financialApi.post('/credits/create_with_schedule', data);
   return response.data;
 };
 
-// 3. Listar Créditos
 export const getCredits = async (): Promise<CreditResponse[]> => {
   const response = await financialApi.get('/credits/');
   return response.data;
 };
 
-// 4. Eliminar Crédito
 export const deleteCredit = async (id: number): Promise<void> => {
   await financialApi.delete(`/credits/${id}`);
 };
 
-// --- CLIENTES (Aquí estaban los faltantes) ---
+// --- CLIENTES ---
 
-// 5. Obtener Clientes
 export const getCustomers = async (): Promise<Customer[]> => {
   const response = await financialApi.get('/customers/');
   return response.data;
 };
 
-// 6. Crear Cliente
 export const createCustomer = async (data: CustomerCreate | Customer): Promise<Customer> => {
   const response = await financialApi.post('/customers/', data);
   return response.data;
 };
 
-// 7. Actualizar Cliente (NUEVO - Faltaba esto)
 export const updateCustomer = async (id: number, data: Customer): Promise<Customer> => {
   const response = await financialApi.put(`/customers/${id}`, data);
   return response.data;
 };
 
-// 8. Eliminar Cliente (NUEVO - Faltaba esto)
 export const deleteCustomer = async (id: number): Promise<void> => {
   await financialApi.delete(`/customers/${id}`);
+};
+
+// --- COBRANZAS (Reportes) ---
+
+export const getReceivables = async (year: number, month: number) => {
+  const response = await financialApi.get(`/receivables/?year=${year}&month=${month}`);
+  return response.data;
+};
+
+export const getReceivablesStats = async (year: number, month: number) => {
+  const response = await financialApi.get(`/receivables/stats?year=${year}&month=${month}`);
+  return response.data;
+};
+
+// --- ACTIVOS Y DEPRECIACIÓN (ESTO ES LO QUE TE FALTABA) ---
+
+export const getAssets = async (): Promise<Asset[]> => {
+  const response = await financialApi.get('/assets/');
+  return response.data;
+};
+
+export const createAsset = async (data: Asset): Promise<Asset> => {
+  const response = await financialApi.post('/assets/', data);
+  return response.data;
+};
+
+export const deleteAsset = async (id: number): Promise<void> => {
+  await financialApi.delete(`/assets/${id}`);
+};
+
+export const getAssetDepreciation = async (id: number) => {
+  const response = await financialApi.get(`/assets/${id}/depreciation`);
+  return response.data; // Retorna { schedule: [...] }
 };

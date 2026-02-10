@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import MainLayout from "./components/layout/MainLayout";
 import DashboardPage from "./pages/DashboardPage";
 import CompoundInterestPage from "./pages/SimpleInterestPage";
-import DepreciacionPage from "./pages/Depreciacion/DepreciacionPage";
+import DepreciacionPage from "./pages/DepreciationPage";
 import AmortizationPage from "./pages/AmortizationPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
