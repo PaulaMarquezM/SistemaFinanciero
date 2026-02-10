@@ -23,21 +23,23 @@ export interface ScheduleRow {
 }
 
 export interface Customer {
-  id: number;
+  id?: number;
   first_name: string;
   last_name: string;
-  full_name?: string; // Agregado por si el backend manda nombre completo
-  email?: string;
+  email: string;
   phone?: string;
   address?: string;
+  document_number?: string; // IMPORTANTE: Debe coincidir con el backend
 }
 
+// Actualicé este para incluir document_number también
 export interface CustomerCreate {
   first_name: string;
   last_name: string;
   email: string;
   phone?: string;
   address?: string;
+  document_number?: string;
 }
 
 export interface CreditCreate extends AmortizationParams {
@@ -56,41 +58,52 @@ export interface CreditResponse extends CreditCreate {
 
 // ================= API CALLS (Llamadas al servidor) =================
 
-// 1. Calcular Amortización (Para el botón "Generar Tabla")
+// --- AMORTIZACIÓN Y CRÉDITOS ---
+
+// 1. Calcular Amortización (Simulación)
 export const getAmortizationSchedule = async (params: AmortizationParams): Promise<ScheduleRow[]> => {
-  // Nota: Asegúrate de tener el endpoint /amortization/calculate en tu backend.
-  // Si no lo tienes, avísame para dártelo o usar cálculo local.
   const response = await financialApi.post('/amortization/calculate', params);
   return response.data.schedule;
 };
 
-// 2. Obtener Clientes (Para el Select "Vincular Cliente")
-export const getCustomers = async (): Promise<Customer[]> => {
-  const response = await financialApi.get('/customers/');
-  return response.data;
-};
-
-// 3. Crear Cliente (Si tienes un formulario de registro)
-export const createCustomer = async (data: CustomerCreate): Promise<Customer> => {
-  const response = await financialApi.post('/customers/', data);
-  return response.data;
-};
-
-// 4. Crear/Guardar Crédito (CORREGIDO EL ERROR 405 AQUÍ)
+// 2. Crear/Guardar Crédito Real
 export const createCredit = async (data: CreditCreate): Promise<CreditResponse> => {
-  // ANTES: post('/credits/', data) -> Esto daba error 405
-  // AHORA: Apuntamos a la ruta específica que soporta Francés/Alemán
   const response = await financialApi.post('/credits/create_with_schedule', data);
   return response.data;
 };
 
-// 5. Listar Créditos (Para reportes)
+// 3. Listar Créditos
 export const getCredits = async (): Promise<CreditResponse[]> => {
   const response = await financialApi.get('/credits/');
   return response.data;
 };
 
-// 6. Eliminar Crédito
+// 4. Eliminar Crédito
 export const deleteCredit = async (id: number): Promise<void> => {
   await financialApi.delete(`/credits/${id}`);
+};
+
+// --- CLIENTES (Aquí estaban los faltantes) ---
+
+// 5. Obtener Clientes
+export const getCustomers = async (): Promise<Customer[]> => {
+  const response = await financialApi.get('/customers/');
+  return response.data;
+};
+
+// 6. Crear Cliente
+export const createCustomer = async (data: CustomerCreate | Customer): Promise<Customer> => {
+  const response = await financialApi.post('/customers/', data);
+  return response.data;
+};
+
+// 7. Actualizar Cliente (NUEVO - Faltaba esto)
+export const updateCustomer = async (id: number, data: Customer): Promise<Customer> => {
+  const response = await financialApi.put(`/customers/${id}`, data);
+  return response.data;
+};
+
+// 8. Eliminar Cliente (NUEVO - Faltaba esto)
+export const deleteCustomer = async (id: number): Promise<void> => {
+  await financialApi.delete(`/customers/${id}`);
 };
